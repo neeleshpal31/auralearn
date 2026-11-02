@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+
+{% block title %}Verified Certificate - {{ certificate.student_name }} | AuraLearn{% endblock %}
+
+{% block content %}
+<div class="certificate-view-container">
+    
+    <!-- Top Action Bar (Back, Print, Share, Verification status) -->
+    <div class="cert-view-header-bar">
+        <div class="header-left">
+            <a href="{{ url_for('profile') }}" class="btn-secondary back-to-profile-btn">
+                <i class="fa-solid fa-arrow-left"></i> My Profile
+            </a>
+            <div class="cert-verified-pill">
+                <i class="fa-solid fa-circle-check"></i> Verified Credential
+            </div>
+        </div>
+
+        <div class="header-right" style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
+            <button type="button" class="btn-secondary cert-action-btn" onclick="copyCertLink()">
+                <i class="fa-regular fa-copy"></i> <span id="copy-btn-text">Share Link</span>
+            </button>
+            <button type="button" class="btn-secondary cert-action-btn" onclick="window.print()">
+                <i class="fa-solid fa-print"></i> Print
+            </button>
+            <button type="button" id="btn-download-pdf" class="btn-primary cert-action-btn" onclick="downloadCertificatePDF()" style="background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%); color: #000; font-weight: 800; border: none; box-shadow: 0 4px 15px rgba(251, 191, 36, 0.35);">
+                <i class="fa-solid fa-file-arrow-down"></i> <span id="download-btn-text">Download Official PDF</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- PRINTABLE / HIGH RESOLUTION OFFICIAL CERTIFICATE CANVAS -->
+    <div class="cert-canvas-frame" id="printable-certificate-canvas">
+        <div class="cert-border-outer">
+            <div class="cert-border-inner">
+                
+                <!-- Background Security Watermark -->
+                <div class="cert-watermark-bg">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+
+                <!-- Certificate Header -->
+                <div class="cert-card-header">
+                    <div class="cert-brand-row">
+                        <div class="cert-brand-logo">
+                            <i class="fa-solid fa-graduation-cap cert-logo-icon"></i>
+                            <span>AuraLearn Academy</span>
+                        </div>
+                        <div class="cert-badge-academic">HONORIS ACADEMIA</div>
+                    </div>
+                    <div class="cert-document-title">CERTIFICATE OF COMPLETION & MASTERY</div>
+                    <div class="cert-document-subtitle">THIS OFFICIAL CREDENTIAL IS PROUDLY AWARDED TO</div>
+                </div>
+
+                <!-- Recipient Info -->
+                <div class="cert-recipient-zone">
+                    <h1 class="cert-recipient-name">{{ certificate.student_name }}</h1>
+                    <div class="cert-recipient-divider"></div>
+                    <p class="cert-accomplishment-text">
+                        For successfully completing all interactive syllabi, mastering foundational and advanced curriculum, and demonstrating academic excellence in the proctored final examination for
+                    </p>
+                    <h2 class="cert-course-name">{{ certificate.course_title }}</h2>
+                    
+                    <!-- Course Specs & Grade Banner -->
+                    <div class="cert-meta-tags-row">
+                        <span class="cert-meta-item"><strong>Category:</strong> {{ certificate.course_category }}</span>
+                        <span class="cert-meta-item"><strong>Level:</strong> {{ certificate.course_skill_level }}</span>
+                        <span class="cert-meta-item"><strong>Exam Score:</strong> {{ certificate.exam_score }}%</span>
+                        <span class="cert-meta-item cert-grade-highlight"><strong>Grade:</strong> {{ certificate.grade }} ({{ certificate.grade_title }})</span>
+                    </div>
+                </div>
+
+                <!-- Signatures, Seals, and Verification Footer -->
+                <div class="cert-card-footer">
+                    
+                    <!-- Academic Signature Left -->
+                    <div class="cert-signature-column">
+                        <div class="signature-cursive">Dr. Evelyn Vance</div>
+                        <div class="signature-line-bar"></div>
+                        <div class="signature-name">Dr. Evelyn Vance, Ph.D.</div>
+                        <div class="signature-role">Director of Academic Excellence</div>
+                    </div>
+
+                    <!-- Center Gold Seal -->
+                    <div class="cert-gold-seal-wrapper">
+                        <div class="gold-seal-ribbon"></div>
+                        <div class="gold-seal-disc">
+                            <i class="fa-solid fa-certificate gold-star-icon"></i>
+                            <span class="seal-text-top">OFFICIAL SEAL</span>
+                            <span class="seal-text-mid">VERIFIED</span>
+                            <span class="seal-text-year">2026</span>
+                        </div>
+                    </div>
+
+                    <!-- Issuer Signature Right -->
+                    <div class="cert-signature-column">
+                        <div class="signature-cursive">AuraLearn Academic Board</div>
+                        <div class="signature-line-bar"></div>
+                        <div class="signature-name">AuraLearn Certification Council</div>
+                        <div class="signature-role">Issued: {{ certificate.issued_date }}</div>
+                    </div>
+
+                </div>
+
+                <!-- Bottom Credential Serial ID & Verification URL -->
+                <div class="cert-bottom-id-bar">
+                    <div class="cert-id-item">
+                        <i class="fa-solid fa-fingerprint"></i> Certificate ID: <strong>{{ certificate.certificate_code }}</strong>
+                    </div>
+                    <div class="cert-id-item">
+                        <i class="fa-solid fa-globe"></i> Verify: <strong>aurademi.edu/certificate/{{ certificate.certificate_code }}</strong>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Verification Metadata Details Card -->
+    <div class="cert-meta-details-card">
+        <div class="meta-details-grid">
+            <div class="meta-detail-col">
+                <span class="meta-label"><i class="fa-solid fa-user"></i> Student Learner</span>
+                <span class="meta-val">{{ certificate.student_name }} (@{{ certificate.username }})</span>
+            </div>
+            <div class="meta-detail-col">
+                <span class="meta-label"><i class="fa-solid fa-book"></i> Certified Program</span>
+                <span class="meta-val">{{ certificate.course_title }}</span>
+            </div>
+            <div class="meta-detail-col">
+                <span class="meta-label"><i class="fa-solid fa-calendar-check"></i> Date of Issuance</span>
+                <span class="meta-val">{{ certificate.issued_date }}</span>
+            </div>
+            <div class="meta-detail-col">
+                <span class="meta-label"><i class="fa-solid fa-shield-halved"></i> Proctor Assessment</span>
+                <span class="meta-val" style="color: var(--accent-emerald);">Secure Mode Proctored (Grade {{ certificate.grade }})</span>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Include html2canvas and jsPDF for client-side high-resolution PDF generation -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+    function copyCertLink() {
+        const url = window.location.origin + "{{ url_for('view_certificate', cert_code=certificate.certificate_code) }}";
+        navigator.clipboard.writeText(url).then(() => {
+            const btnText = document.getElementById('copy-btn-text');
+            if (btnText) {
+                btnText.innerText = "Link Copied!";
+                setTimeout(() => {
+                    btnText.innerText = "Share Link";
+                }, 2500);
+            }
+        });
+    }
+
+    async function downloadCertificatePDF() {
+        const element = document.getElementById('printable-certificate-canvas');
+        const btn = document.getElementById('btn-download-pdf');
+        const originalHtml = btn ? btn.innerHTML : '';
+        const backendDownloadUrl = "{{ url_for('download_certificate_pdf_route', cert_code=certificate.certificate_code) }}";
+        
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Downloading PDF...';
+        }
+        
+        const studentName = "{{ certificate.student_name | replace('"', '') | replace("'", "") }}";
+        const certCode = "{{ certificate.certificate_code }}";
+        const courseTitle = "{{ certificate.course_title | replace('"', '') | replace("'", "") }}";
+        const sanitizedName = studentName.replace(/[^a-zA-Z0-9]/g, '_');
+        const sanitizedCourse = courseTitle.replace(/[^a-zA-Z0-9]/g, '_');
+        const filename = `Certificate_${sanitizedCourse}_${sanitizedName}_${certCode}.pdf`;
+        
+        try {
+            // Check if html2canvas and jsPDF are loaded
+            const hasCanvas = typeof html2canvas !== 'undefined';
+            const jsPDFConstructor = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : (typeof jsPDF !== 'undefined' ? jsPDF : null);
+
+            if (hasCanvas && jsPDFConstructor && element) {
+                // Render the certificate DOM to a crisp ultra-high-res canvas
+                const canvas = await html2canvas(element, { 
+                    scale: 2.5, 
+                    useCORS: true, 
+                    logging: false,
+                    scrollY: 0,
+                    backgroundColor: '#080d1a'
+                });
+
+                // Exact 1:1 PDF dimensions matching the certificate canvas
+                const scale = 2.5;
+                const pxWidth = canvas.width / scale;
+                const pxHeight = canvas.height / scale;
+                // Convert px to mm (1 px = 0.2645833 mm)
+                const pdfWidth = pxWidth * 0.2645833;
+                const pdfHeight = pxHeight * 0.2645833;
+
+                // Create PDF with custom dimensions matching the certificate exactly
+                const doc = new jsPDFConstructor({
+                    orientation: pdfWidth >= pdfHeight ? 'landscape' : 'portrait',
+                    unit: 'mm',
+                    format: [pdfWidth, pdfHeight]
+                });
+
+                const imgData = canvas.toDataURL('image/jpeg', 1.0);
+                
+                // Add image full-bleed (0, 0) perfectly fitting the exact 1-page PDF
+                doc.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+                doc.save(filename);
+            } else {
+                // Direct server-side download stream
+                window.location.href = backendDownloadUrl;
+            }
+
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> PDF Downloaded!';
+                setTimeout(() => {
+                    btn.innerHTML = originalHtml;
+                }, 3000);
+            }
+        } catch (err) {
+            console.error("Client PDF generation fallback to server:", err);
+            // Seamlessly trigger direct server-side PDF download
+            window.location.href = backendDownloadUrl;
+            if (btn) {
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                }, 2000);
+            }
+        }
+    }
+
+    // Auto-trigger direct download if requested via query param ?download=1
+    document.addEventListener('DOMContentLoaded', () => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('download') === '1' || params.get('download') === 'true') {
+            setTimeout(() => {
+                downloadCertificatePDF();
+            }, 400);
+        }
+    });
+</script>
+{% endblock %}

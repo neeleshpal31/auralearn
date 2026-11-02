@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}Sign In / Sign Up - AuraLearn{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="logo-container" style="justify-content: center; margin-bottom: 1rem;">
+                <i class="fa-solid fa-graduation-cap logo-icon" style="font-size: 2.5rem;"></i>
+                <span class="logo-text" style="font-size: 1.8rem;">AuraLearn</span>
+            </div>
+            <p class="auth-subtitle" id="auth-subtitle-text">Welcome back! Access your personalized learning dashboard.</p>
+        </div>
+        
+        <!-- Toggle Tabs -->
+        <div style="display: flex; background: var(--bg-secondary); border-radius: 12px; padding: 0.3rem; margin-bottom: 1.5rem; border: 1px solid var(--border-color);">
+            <button type="button" id="tab-login" style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 9px; flex: 1; padding: 0.6rem; font-size: 0.9rem; font-weight: 700; cursor: pointer; color: var(--accent-primary); box-shadow: var(--card-shadow); font-family: var(--font-body);">Sign In</button>
+            <button type="button" id="tab-register" style="border: none; background: transparent; flex: 1; padding: 0.6rem; font-size: 0.9rem; font-weight: 600; cursor: pointer; color: var(--text-secondary); font-family: var(--font-body);">Sign Up</button>
+        </div>
+        
+        <!-- Login Form -->
+        <form id="form-login" action="{{ url_for('login') }}" method="POST">
+            <div class="form-group">
+                <label class="form-label" for="login-username">Username</label>
+                <input class="form-control" type="text" id="login-username" name="username" placeholder="e.g. alex_dev" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="login-password">Password</label>
+                <input class="form-control" type="password" id="login-password" name="password" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="btn-hero-primary" style="width: 100%; justify-content: center; padding: 0.8rem; font-size: 0.95rem; border-radius: 10px;">Sign In</button>
+        </form>
+        
+        <!-- Registration Form (Hidden initially) -->
+        <form id="form-register" action="{{ url_for('register') }}" method="POST" style="display: none;">
+            <div class="form-group">
+                <label class="form-label" for="reg-name">Full Name</label>
+                <input class="form-control" type="text" id="reg-name" name="full_name" placeholder="e.g. Alex Rivera" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="reg-username">Username</label>
+                <input class="form-control" type="text" id="reg-username" name="username" placeholder="e.g. alex_dev" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="reg-password">Password</label>
+                <input class="form-control" type="password" id="reg-password" name="password" placeholder="Minimum 6 characters" required>
+            </div>
+            <button type="submit" class="btn-hero-primary" style="width: 100%; justify-content: center; padding: 0.8rem; font-size: 0.95rem; border-radius: 10px;">Create Account</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Local script to toggle Auth view tabs
+    const tabLogin = document.getElementById('tab-login');
+    const tabRegister = document.getElementById('tab-register');
+    const formLogin = document.getElementById('form-login');
+    const formRegister = document.getElementById('form-register');
+    const subtitleText = document.getElementById('auth-subtitle-text');
+
+    tabLogin.addEventListener('click', () => {
+        // Active Styles
+        tabLogin.style.background = 'var(--card-bg)';
+        tabLogin.style.color = 'var(--accent-primary)';
+        tabLogin.style.border = '1px solid var(--border-color)';
+        tabLogin.style.boxShadow = 'var(--card-shadow)';
+        tabLogin.style.fontWeight = '700';
+        
+        tabRegister.style.background = 'transparent';
+        tabRegister.style.color = 'var(--text-secondary)';
+        tabRegister.style.border = 'none';
+        tabRegister.style.boxShadow = 'none';
+        tabRegister.style.fontWeight = '600';
+
+        // Forms Toggle
+        formLogin.style.display = 'block';
+        formRegister.style.display = 'none';
+        subtitleText.textContent = 'Welcome back! Access your personalized learning dashboard.';
+    });
+
+    tabRegister.addEventListener('click', () => {
+        // Active Styles
+        tabRegister.style.background = 'var(--card-bg)';
+        tabRegister.style.color = 'var(--accent-primary)';
+        tabRegister.style.border = '1px solid var(--border-color)';
+        tabRegister.style.boxShadow = 'var(--card-shadow)';
+        tabRegister.style.fontWeight = '700';
+        
+        tabLogin.style.background = 'transparent';
+        tabLogin.style.color = 'var(--text-secondary)';
+        tabLogin.style.border = 'none';
+        tabLogin.style.boxShadow = 'none';
+        tabLogin.style.fontWeight = '600';
+
+        // Forms Toggle
+        formLogin.style.display = 'none';
+        formRegister.style.display = 'block';
+        subtitleText.textContent = 'Create an account to begin your personalized learning journey.';
+    });
+</script>
+{% endblock %}

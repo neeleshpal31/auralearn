@@ -1,0 +1,394 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - AuraLearn{% endblock %}
+
+{% block content %}
+<!-- Top Greeting Section Matching the Target Theme -->
+<div class="greeting-header">
+    <div class="greeting-text-group">
+        <span class="greeting-pre">Welcome back,</span>
+        <h1 class="greeting-title">{{ greeting }}, {{ session.get('full_name', 'Neelesh').split(' ')[0] }}! <span class="wave-emoji">👋</span></h1>
+    </div>
+    <div class="greeting-pills">
+        <div class="greeting-pill streak-pill">
+            <i class="fa-solid fa-fire"></i> {{ streak_info.current_streak }} Day Streak
+        </div>
+        <div class="greeting-pill xp-pill">
+            <i class="fa-solid fa-star"></i> {{ user_xp }} XP
+        </div>
+        <div class="greeting-pill rank-pill">
+            <i class="fa-solid fa-crown"></i> Rank #{{ user_rank }}
+        </div>
+    </div>
+</div>
+<p class="greeting-sub">Keep learning, keep growing. Small steps lead to big achievements.</p>
+
+<div class="dashboard-full-container">
+    <!-- Continue Learning Hero Banner Card -->
+    <div class="hero-continue-card">
+        <div class="hero-left-content">
+            <span class="hero-tag-continue">CONTINUE LEARNING</span>
+            <h2 class="hero-course-title">
+                <a href="{{ url_for('course_detail', course_id=continue_course.course_id) }}" style="color: inherit; text-decoration: none;">
+                    {{ continue_course.course_title }}
+                </a>
+            </h2>
+            <div class="hero-next-up">
+                Next Lesson: 
+                {% if continue_course.next_lesson_id %}
+                <a href="{{ url_for('study_notes', course_id=continue_course.course_id, lesson_id=continue_course.next_lesson_id) }}" style="color: #2563eb; text-decoration: none; font-weight: 600;">
+                    <span>{{ continue_course.next_lesson_title }}</span>
+                </a>
+                {% else %}
+                <span>{{ continue_course.next_lesson_title }}</span>
+                {% endif %}
+            </div>
+            
+            <div class="hero-progress-wrapper" style="margin-top: 1.25rem;">
+                <div class="hero-progress-bar">
+                    <div class="hero-progress-fill" style="width: {{ continue_course.progress_percent if continue_course.progress_percent > 0 else 35 }}%;"></div>
+                </div>
+                <span class="hero-progress-text">{{ (continue_course.progress_percent | round | int) if continue_course.progress_percent > 0 else 35 }}%</span>
+            </div>
+            
+            <div class="hero-actions-row">
+                <a href="{{ url_for('course_detail', course_id=continue_course.course_id) }}" class="btn-hero-primary" id="btn-continue-learning" title="Continue {{ continue_course.course_title }}">
+                    <i class="fa-solid fa-play"></i> Continue Learning
+                </a>
+                <a href="{{ url_for('course_demo_exam', course_id=continue_course.course_id) }}" class="btn-hero-demo" title="Try Demo Exam">
+                    <i class="fa-solid fa-flask"></i> Try Demo Exam
+                </a>
+            </div>
+        </div>
+        
+        <!-- Graphic Illustration Matching the Screenshot -->
+        <a href="{{ url_for('course_detail', course_id=continue_course.course_id) }}" class="hero-ide-illustration" style="text-decoration: none; color: inherit; cursor: pointer;" title="Open {{ continue_course.course_title }}">
+            <div class="ide-frame">
+                <div class="ide-header">
+                    <div class="ide-dots">
+                        <span class="dot red"></span>
+                        <span class="dot yellow"></span>
+                        <span class="dot green"></span>
+                    </div>
+                    <span class="ide-badge-pill">
+                        {% if 'React' in continue_course.course_title %}
+                        <i class="fa-brands fa-react"></i> React.js
+                        {% elif 'Python' in continue_course.course_title %}
+                        <i class="fa-brands fa-python"></i> Python
+                        {% elif 'JavaScript' in continue_course.course_title or 'Node' in continue_course.course_title %}
+                        <i class="fa-brands fa-node-js"></i> Node.js
+                        {% else %}
+                        <i class="fa-solid fa-code"></i> {{ continue_course.category }}
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="ide-body">
+                    <div class="ide-glow-atom">
+                        {% if 'React' in continue_course.course_title %}
+                        <i class="fa-brands fa-react"></i>
+                        {% elif 'Python' in continue_course.course_title %}
+                        <i class="fa-brands fa-python"></i>
+                        {% elif 'JavaScript' in continue_course.course_title or 'Node' in continue_course.course_title %}
+                        <i class="fa-brands fa-js"></i>
+                        {% else %}
+                        <i class="fa-solid fa-laptop-code"></i>
+                        {% endif %}
+                    </div>
+                    <div class="ide-code-lines">
+                        <div class="code-line w-80"></div>
+                        <div class="code-line w-60"></div>
+                        <div class="code-line w-90"></div>
+                        <div class="code-line w-40"></div>
+                    </div>
+                </div>
+                <div class="ide-floating-card">
+                    <div class="floating-header">
+                        <i class="fa-solid fa-code"></i> Component
+                    </div>
+                    <div class="floating-line"></div>
+                    <div class="floating-line short"></div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <!-- 3-Column Middle Row: Today's Goals, Your Progress, Quick Actions -->
+    <div class="middle-cards-grid-3">
+        
+        <!-- Card 1: Today's Goals -->
+        <div class="goals-card">
+            <div class="goals-header">
+                <div class="goals-title-box">
+                    <i class="fa-solid fa-bullseye goals-target-icon"></i>
+                    <h3>Today's Goals</h3>
+                </div>
+                <span class="goals-count-badge">{{ daily_goals.completed_count }}/{{ daily_goals.total_count }} Done</span>
+            </div>
+            
+            <div class="goals-list">
+                <div class="goal-item-row">
+                    <div class="goal-checkbox-custom"></div>
+                    <span class="goal-text">Complete 1 lesson module</span>
+                </div>
+                <div class="goal-item-row">
+                    <div class="goal-checkbox-custom"></div>
+                    <span class="goal-text">Solve today's daily challenge</span>
+                </div>
+                <div class="goal-item-row">
+                    <div class="goal-checkbox-custom"></div>
+                    <span class="goal-text">Complete one lesson quiz</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 2: Your Progress -->
+        <div class="progress-overview-card">
+            <div class="side-card-header">
+                <div class="side-card-title-box">
+                    <i class="fa-solid fa-seedling progress-sprout-icon"></i>
+                    <h3>Your Progress</h3>
+                </div>
+            </div>
+            
+            <div class="progress-badge-layout" style="margin-top: 0.75rem;">
+                <div class="hex-badge-container">
+                    <div class="hex-badge">
+                        <span class="hex-sub">L{{ level_info.level }}</span>
+                        <span class="hex-title">Lv {{ level_info.level }}</span>
+                    </div>
+                </div>
+                <div class="progress-level-details">
+                    <h4 class="level-scholar-title">Level {{ level_info.level }} Scholar</h4>
+                    <div class="level-progress-bar-wrap">
+                        <div class="level-progress-fill" style="width: {{ level_info.progress_pct }}%;"></div>
+                    </div>
+                    <div class="level-xp-text">
+                        {{ level_info.xp_in_level }} / {{ level_info.next_level_xp - level_info.base_xp }} XP ({{ level_info.progress_pct | round(0) | int }}%)
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 3: Quick Actions -->
+        <div class="quick-actions-card">
+            <div class="side-card-header">
+                <div class="side-card-title-box">
+                    <i class="fa-solid fa-bolt" style="color: var(--accent-primary);"></i>
+                    <h3>Quick Actions</h3>
+                </div>
+            </div>
+            
+            <div class="quick-actions-grid">
+                <a href="{{ url_for('courses') }}" class="quick-action-tile">
+                    <div class="action-icon-box" style="background: rgba(139, 92, 246, 0.12); color: #8b5cf6;">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                    </div>
+                    <span>Take a Quiz</span>
+                </a>
+                <a href="{{ url_for('playground') }}" class="quick-action-tile">
+                    <div class="action-icon-box" style="background: rgba(6, 182, 212, 0.12); color: #06b6d4;">
+                        <i class="fa-solid fa-code"></i>
+                    </div>
+                    <span>Code Sandbox</span>
+                </a>
+                <a href="{{ url_for('quiz_battle') }}" class="quick-action-tile">
+                    <div class="action-icon-box" style="background: rgba(236, 72, 153, 0.12); color: #ec4899;">
+                        <i class="fa-solid fa-bolt"></i>
+                    </div>
+                    <span>1v1 Battle</span>
+                </a>
+                <a href="javascript:void(0)" onclick="openAiStudyModal()" class="quick-action-tile">
+                    <div class="action-icon-box" style="background: rgba(99, 102, 241, 0.12); color: #6366f1;">
+                        <i class="fa-solid fa-robot"></i>
+                    </div>
+                    <span>AI Tutor</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recommended for You Section (3 Cards matching master design) -->
+    <div class="recommended-section">
+        <div class="section-header-row">
+            <div class="section-title-box">
+                <i class="fa-regular fa-compass section-icon"></i>
+                <h3>Recommended for You</h3>
+            </div>
+            <a href="{{ url_for('courses') }}" class="section-link">View All &rarr;</a>
+        </div>
+        
+        <div class="recommended-cards-grid-3">
+            <div class="modern-rec-card-compact">
+                <div class="rec-compact-thumb thumb-python">
+                    <i class="fa-brands fa-python"></i>
+                </div>
+                <div class="rec-compact-body">
+                    <h4 class="rec-compact-title">
+                        <a href="{{ url_for('courses') }}">Python Programming for Beginners</a>
+                    </h4>
+                    <p class="rec-compact-desc">Build real-world programs from scratch.</p>
+                    <div class="rec-compact-meta">
+                        <span class="badge-pill beginner"><i class="fa-solid fa-chart-simple"></i> Beginner</span>
+                        <span><i class="fa-regular fa-clock"></i> 10 hours</span>
+                        <span class="rating-gold"><i class="fa-solid fa-star"></i> 4.5</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modern-rec-card-compact">
+                <div class="rec-compact-thumb thumb-js">
+                    <span>JS</span>
+                </div>
+                <div class="rec-compact-body">
+                    <h4 class="rec-compact-title">
+                        <a href="{{ url_for('courses') }}">Modern Full-Stack JavaScript with Node.js</a>
+                    </h4>
+                    <p class="rec-compact-desc">Build responsive web apps.</p>
+                    <div class="rec-compact-meta">
+                        <span class="badge-pill intermediate"><i class="fa-solid fa-chart-simple"></i> Intermediate</span>
+                        <span><i class="fa-regular fa-clock"></i> 16 hours</span>
+                        <span class="rating-gold"><i class="fa-solid fa-star"></i> 4.5</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modern-rec-card-compact">
+                <div class="rec-compact-thumb thumb-sql">
+                    <i class="fa-solid fa-database"></i>
+                </div>
+                <div class="rec-compact-body">
+                    <h4 class="rec-compact-title">
+                        <a href="{{ url_for('courses') }}">Advanced SQL for Databases and Data Analysis</a>
+                    </h4>
+                    <p class="rec-compact-desc">Master structured queries.</p>
+                    <div class="rec-compact-meta">
+                        <span class="badge-pill intermediate"><i class="fa-solid fa-chart-simple"></i> Intermediate</span>
+                        <span><i class="fa-regular fa-clock"></i> 14 hours</span>
+                        <span class="rating-gold"><i class="fa-solid fa-star"></i> 4.7</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Interactive Daily Challenge Modal Solver -->
+<div id="challenge-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); z-index: 10000; justify-content: center; align-items: center; padding: 1.5rem;">
+    <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 20px; width: 100%; max-width: 620px; box-shadow: var(--card-shadow); padding: 1.75rem; position: relative;">
+        <button onclick="closeChallengeModal()" style="position: absolute; right: 1.25rem; top: 1.25rem; background: none; border: none; font-size: 1.2rem; color: var(--text-muted); cursor: pointer;"><i class="fa-solid fa-xmark"></i></button>
+        
+        <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
+            <span class="hero-pill" style="background: var(--accent-light); color: var(--accent-primary); font-weight: 800;">DAILY CHALLENGE</span>
+            <span class="hero-pill" style="color: var(--accent-primary);">+{{ daily_challenge.xp_reward }} XP</span>
+        </div>
+        <h3 style="font-size: 1.35rem; color: var(--text-primary); margin-bottom: 0.5rem;">{{ daily_challenge.title }}</h3>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.25rem; line-height: 1.45;">{{ daily_challenge.description }}</p>
+        
+        <div id="challenge-interactive-body">
+            {% if daily_challenge.challenge_type == 'quiz' %}
+            <div style="font-weight: 600; font-size: 0.95rem; color: var(--text-primary); margin-bottom: 0.75rem;">{{ daily_challenge.data.question }}</div>
+            <div style="display: flex; flex-direction: column; gap: 0.65rem;" id="challenge-options-group">
+                {% for opt in daily_challenge.data.options %}
+                <button type="button" class="mcq-option-btn" style="width: 100%; text-align: left; padding: 0.8rem 1rem; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); cursor: pointer;" onclick="selectChallengeOption(this, '{{ opt | replace("'", "\\'") }}')">
+                    {{ opt }}
+                </button>
+                {% endfor %}
+            </div>
+            {% else %}
+            <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 0.5rem;">Interactive Code / Output Solution:</label>
+            <textarea id="challenge-code-input" rows="6" style="width: 100%; padding: 0.85rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; font-family: monospace; font-size: 0.9rem; color: var(--text-primary); resize: vertical;">{{ daily_challenge.data.starter_code or daily_challenge.data.expected_output }}</textarea>
+            {% endif %}
+        </div>
+
+        <div id="challenge-result-box" style="display: none; margin-top: 1rem; padding: 0.85rem; border-radius: 10px; font-size: 0.9rem;"></div>
+
+        <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+            <button class="btn-hero-demo" onclick="closeChallengeModal()" style="padding: 0.5rem 1rem;">Cancel</button>
+            <button class="btn-hero-primary" id="btn-submit-challenge" style="padding: 0.5rem 1.4rem;" onclick="submitChallengeAnswer()">Submit Solution</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let selectedChallengeAnswer = '';
+    const challengeId = {{ daily_challenge.id }};
+    const challengeType = '{{ daily_challenge.challenge_type }}';
+
+    function openChallengeModal() {
+        document.getElementById('challenge-modal').style.display = 'flex';
+    }
+    function closeChallengeModal() {
+        document.getElementById('challenge-modal').style.display = 'none';
+    }
+    function selectChallengeOption(btn, val) {
+        selectedChallengeAnswer = val;
+        document.querySelectorAll('#challenge-options-group .mcq-option-btn').forEach(b => {
+            b.style.borderColor = 'var(--border-color)';
+            b.style.background = 'var(--bg-secondary)';
+        });
+        btn.style.borderColor = 'var(--accent-primary)';
+        btn.style.background = 'var(--accent-light)';
+    }
+
+    function submitChallengeAnswer() {
+        let answer = selectedChallengeAnswer;
+        if (challengeType === 'code') {
+            const input = document.getElementById('challenge-code-input');
+            answer = input ? input.value : 'done';
+        }
+        
+        if (!answer.trim()) {
+            alert('Please select or provide an answer before submitting!');
+            return;
+        }
+
+        const btn = document.getElementById('btn-submit-challenge');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Checking...';
+
+        fetch('/api/daily-challenge/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                challenge_id: challengeId,
+                answer: answer
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            const resBox = document.getElementById('challenge-result-box');
+            resBox.style.display = 'block';
+            if (data.success) {
+                resBox.style.background = 'rgba(16,185,129,0.1)';
+                resBox.style.border = '1px solid var(--text-success)';
+                resBox.style.color = 'var(--text-success)';
+                resBox.innerHTML = '<i class="fa-solid fa-circle-check"></i> ' + (data.message || 'Challenge solved successfully! (+20 XP)');
+                setTimeout(() => { window.location.reload(); }, 1500);
+            } else {
+                resBox.style.background = 'rgba(239,68,68,0.1)';
+                resBox.style.border = '1px solid var(--text-danger)';
+                resBox.style.color = 'var(--text-danger)';
+                resBox.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> ' + (data.error || 'Incorrect solution. Try again!');
+                btn.disabled = false;
+                btn.innerHTML = 'Submit Solution';
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerHTML = 'Submit Solution';
+            alert('Error submitting challenge. Please try again.');
+        });
+    }
+
+    function handleAiStudySubmit() {
+        const input = document.getElementById('ai-quick-input');
+        if (input && input.value.trim()) {
+            submitQuickAiPrompt(input.value.trim());
+        }
+    }
+
+    function submitQuickAiPrompt(promptText) {
+        window.location.href = '/playground?prompt=' + encodeURIComponent(promptText);
+    }
+</script>
+{% endblock %}

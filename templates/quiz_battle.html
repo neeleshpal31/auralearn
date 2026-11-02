@@ -1,0 +1,1130 @@
+{% extends 'base.html' %}
+
+{% block title %}1v1 Quiz Battle Arena - AuraLearn{% endblock %}
+
+{% block content %}
+<div class="arena-wrapper">
+
+    <!-- Header Title & Subtitle -->
+    <div class="arena-page-header">
+        <h1 class="page-title"><i class="fa-solid fa-bolt" style="color: var(--accent-purple);"></i> 1v1 Quiz Battle Arena</h1>
+        <p class="page-subtitle">Challenge real players or AI in real-time and test your knowledge!</p>
+    </div>
+
+    <!-- Mode Action Tabs -->
+    <div class="arena-action-tabs">
+        <button class="arena-tab-pill active" onclick="openRadarMatchmaker()">Find Match</button>
+        <button class="arena-tab-pill" onclick="openPrivateRoomModal()">Create Room</button>
+        <button class="arena-tab-pill" onclick="openRadarMatchmaker()">Play with AI</button>
+    </div>
+
+    <!-- 3 Duel Mode Cards Grid -->
+    <div class="duel-modes-grid">
+        <!-- Mode 1: Quick Match -->
+        <div class="duel-mode-card mode-quick-match">
+            <div class="mode-icon-circle">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #ffffff;"><polygon points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><line x1="19" y1="21" x2="21" y2="19"/><polygon points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" y1="14" x2="9" y2="18"/><line x1="7" y1="17" x2="4" y2="20"/><line x1="3" y1="19" x2="5" y2="21"/></svg>
+            </div>
+            <h3 class="mode-title">Quick Match</h3>
+            <p class="mode-desc">Find a random player with similar skill level.</p>
+            <button class="btn-mode-action primary" onclick="openRadarMatchmaker()">Find a Match</button>
+        </div>
+
+        <!-- Mode 2: Create Private Room -->
+        <div class="duel-mode-card mode-private-room">
+            <div class="mode-icon-circle purple">
+                <i class="fa-solid fa-door-open" style="font-size: 1.8rem;"></i>
+            </div>
+            <h3 class="mode-title dark">Create Private Room</h3>
+            <p class="mode-desc dark">Invite your friends to play together.</p>
+            <button class="btn-mode-action purple" onclick="openPrivateRoomModal()">Create Room</button>
+        </div>
+
+        <!-- Mode 3: Play with AI -->
+        <div class="duel-mode-card mode-play-ai">
+            <div class="mode-icon-circle teal">
+                <i class="fa-solid fa-robot" style="font-size: 1.8rem;"></i>
+            </div>
+            <h3 class="mode-title dark">Play with AI</h3>
+            <p class="mode-desc dark">Challenge our AI opponent anytime.</p>
+            <button class="btn-mode-action teal" onclick="openRadarMatchmaker()">Play with AI</button>
+        </div>
+    </div>
+
+    <!-- Battle Settings Card -->
+    <div class="battle-settings-card">
+        <h3 class="settings-card-title">Battle Settings</h3>
+        <div class="settings-options-row">
+            <div class="setting-item">
+                <span class="setting-label">Question Count</span>
+                <div class="setting-pills">
+                    <button class="setting-pill">5</button>
+                    <button class="setting-pill active">10</button>
+                    <button class="setting-pill">15</button>
+                    <button class="setting-pill">20</button>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <span class="setting-label">Time per Question</span>
+                <div class="setting-pills">
+                    <button class="setting-pill">10s</button>
+                    <button class="setting-pill active">20s</button>
+                    <button class="setting-pill">30s</button>
+                    <button class="setting-pill">60s</button>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <span class="setting-label">Difficulty</span>
+                <div class="setting-pills">
+                    <button class="setting-pill">Easy</button>
+                    <button class="setting-pill active">Medium</button>
+                    <button class="setting-pill">Hard</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Your Battle Stats Row -->
+    <div class="battle-stats-card">
+        <h3 class="settings-card-title" style="margin-bottom: 0.85rem;">Your Battle Stats</h3>
+        <div class="battle-stats-grid-4">
+            <div class="stat-pill-box">
+                <div class="stat-icon purple"><i class="fa-solid fa-gamepad"></i></div>
+                <div class="stat-meta">
+                    <span class="stat-label">Matches Played</span>
+                    <span class="stat-val">{{ total_battles if total_battles else '12' }}</span>
+                </div>
+            </div>
+
+            <div class="stat-pill-box">
+                <div class="stat-icon yellow"><i class="fa-solid fa-trophy"></i></div>
+                <div class="stat-meta">
+                    <span class="stat-label">Wins</span>
+                    <span class="stat-val">{{ user_wins if user_wins else '8' }}</span>
+                </div>
+            </div>
+
+            <div class="stat-pill-box">
+                <div class="stat-icon blue"><i class="fa-solid fa-chart-line"></i></div>
+                <div class="stat-meta">
+                    <span class="stat-label">Win Rate</span>
+                    <span class="stat-val">{{ win_rate if win_rate else '67' }}%</span>
+                </div>
+            </div>
+
+            <div class="stat-pill-box">
+                <div class="stat-icon orange"><i class="fa-solid fa-fire"></i></div>
+                <div class="stat-meta">
+                    <span class="stat-label">Current Streak</span>
+                    <span class="stat-val">{{ user_streak if user_streak else '3' }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Three-Column Main Arena Dashboard -->
+    <div class="arena-3col-grid" id="rivalsSection">
+        
+        <!-- Column 1: Active Online Rivals -->
+        <div class="arena-card">
+            <div class="arena-card-header">
+                <div class="arena-card-title">
+                    <i class="fa-solid fa-users" style="color: #38bdf8;"></i> Active Online Rivals
+                </div>
+                <span class="arena-badge-online" id="rivals-online-badge">24 Online</span>
+            </div>
+
+            <p style="font-size: 0.8rem; color: #94a3b8; margin: -0.25rem 0 0.25rem 0;">
+                Select a player to start an instant 5-question duel:
+            </p>
+
+            <!-- Search Rivals Box -->
+            <div class="leaderboard-search-box" style="margin-bottom: 0.25rem; width: 100%;">
+                <i class="fa-solid fa-magnifying-glass leaderboard-search-icon"></i>
+                <input type="text" id="rivalSearchInput" class="leaderboard-search-input" placeholder="Search rivals by name or username...">
+            </div>
+
+            <div class="rival-list-container" id="rivalsList">
+                {% for opp in opponents %}
+                <div class="rival-item-card rival-row"
+                     data-name="{{ opp.full_name | lower }}" 
+                     data-username="{{ opp.username | lower }}"
+                     data-id="{{ opp.id }}">
+                    
+                    <div class="rival-item-left">
+                        <div class="rival-avatar-circle" style="background: {{ opp.avatar_gradient }};">
+                            {{ opp.full_name[0] }}
+                            <span class="rival-status-dot {% if opp.in_match %}in-match{% endif %}" title="{% if opp.in_match %}In Match{% else %}Online{% endif %}"></span>
+                        </div>
+
+                        <div class="rival-details">
+                            <div class="rival-name-line">
+                                <span class="rival-full-name">{{ opp.full_name }}</span>
+                                <span class="tier-pill {{ opp.tier_class }}">
+                                    <i class="fa-solid {{ opp.tier_icon }}"></i> {{ opp.tier_name }}
+                                </span>
+                            </div>
+                            <div class="rival-meta-line">
+                                <span>@{{ opp.username }}</span> &bull;
+                                <span style="color: #38bdf8; font-weight: 700;">Lv {{ opp.level }}</span> &bull;
+                                <span>{{ opp.win_rate }}% Win Rate</span> &bull;
+                                <span style="{% if opp.in_match %}color: #f43f5e;{% else %}color: #10b981;{% endif %} font-weight: 600;">
+                                    {% if opp.in_match %}In Match{% else %}Online{% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if opp.in_match %}
+                    <button class="btn-in-match-action" disabled>
+                        <i class="fa-solid fa-clock-rotate-left"></i> In Match
+                    </button>
+                    {% else %}
+                    <button class="btn-duel-action" onclick="startBattleWith({{ opp.id }}, '{{ opp.full_name }}', '{{ opp.avatar_gradient }}')">
+                        <i class="fa-solid fa-bolt"></i> Duel
+                    </button>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Show More Rivals Button -->
+            {% if opponents | length > 5 %}
+            <div style="text-align: center; margin-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.75rem;">
+                <button class="btn-show-more-toggle" id="btnShowMoreRivals" style="padding: 0.45rem 1.25rem; font-size: 0.8rem; margin: 0 auto;">
+                    <i class="fa-solid fa-chevron-down" id="showMoreIconRivals"></i>
+                    <span id="showMoreTextRivals">Show More Rivals</span>
+                </button>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Column 2: Arena Combat Log -->
+        <div class="arena-card">
+            <div class="arena-card-header">
+                <div class="arena-card-title">
+                    <i class="fa-solid fa-clock-rotate-left" style="color: #fbbf24;"></i> Arena Combat Log
+                </div>
+                <span class="arena-badge-updates">
+                    <span class="arena-live-dot" style="width: 6px; height: 6px;"></span> Live Updates
+                </span>
+            </div>
+
+            <div class="combat-log-container" id="combatLogList">
+                {% if battles %}
+                    {% for b in battles %}
+                    <div class="combat-log-card">
+                        <div class="combat-log-top">
+                            <span class="combat-match-tag">MATCH #{{ b.id }}</span>
+                            {% if b.winner_id == session.get('user_id') %}
+                            <span class="combat-status-badge combat-badge-victory">
+                                <i class="fa-solid fa-trophy"></i> VICTORY (+50 XP)
+                            </span>
+                            {% elif b.winner_id %}
+                            <span class="combat-status-badge combat-badge-defeat">
+                                <i class="fa-solid fa-skull"></i> DEFEAT
+                            </span>
+                            {% else %}
+                            <span class="combat-status-badge combat-badge-draw">
+                                <i class="fa-solid fa-handshake"></i> DRAW
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        <div class="combat-log-duelists">
+                            <div class="combat-duelist">
+                                <div class="combat-mini-avatar" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);">
+                                    {{ b.challenger_name[0] }}
+                                </div>
+                                <span>{{ b.challenger_name }} {% if b.challenger_id == session.get('user_id') %}<small style="color:#38bdf8; font-weight:800;">(You)</small>{% endif %}</span>
+                            </div>
+
+                            <span class="combat-score-badge">
+                                {{ b.challenger_score }} : {{ b.opponent_score }}
+                            </span>
+
+                            <div class="combat-duelist">
+                                <div class="combat-mini-avatar" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                                    {{ b.opponent_name[0] }}
+                                </div>
+                                <span>{{ b.opponent_name }} {% if b.opponent_id == session.get('user_id') %}<small style="color:#38bdf8; font-weight:800;">(You)</small>{% endif %}</span>
+                            </div>
+                        </div>
+
+                        <div class="combat-time-ago">
+                            {% if loop.index == 1 %}2 min ago
+                            {% elif loop.index == 2 %}5 min ago
+                            {% elif loop.index == 3 %}12 min ago
+                            {% elif loop.index == 4 %}20 min ago
+                            {% else %}Recent match
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <!-- Demo matches placeholder if brand new database -->
+                    <div class="combat-log-card">
+                        <div class="combat-log-top">
+                            <span class="combat-match-tag">MATCH #3</span>
+                            <span class="combat-status-badge combat-badge-defeat">
+                                <i class="fa-solid fa-skull"></i> DEFEAT
+                            </span>
+                        </div>
+                        <div class="combat-log-duelists">
+                            <div class="combat-duelist">
+                                <div class="combat-mini-avatar" style="background: #3b82f6;">N</div>
+                                <span>{{ session.get('full_name', 'Player') }} <small style="color:#38bdf8; font-weight:800;">(You)</small></span>
+                            </div>
+                            <span class="combat-score-badge">0 : 5</span>
+                            <div class="combat-duelist">
+                                <div class="combat-mini-avatar" style="background: #f59e0b;">R</div>
+                                <span>Raj Patel</span>
+                            </div>
+                        </div>
+                        <div class="combat-time-ago">2 min ago</div>
+                    </div>
+
+                    <div class="combat-log-card">
+                        <div class="combat-log-top">
+                            <span class="combat-match-tag">MATCH #2</span>
+                            <span class="combat-status-badge combat-badge-draw">
+                                <i class="fa-solid fa-handshake"></i> DRAW
+                            </span>
+                        </div>
+                        <div class="combat-log-duelists">
+                            <div class="combat-duelist">
+                                <div class="combat-mini-avatar" style="background: #3b82f6;">N</div>
+                                <span>{{ session.get('full_name', 'Player') }} <small style="color:#38bdf8; font-weight:800;">(You)</small></span>
+                            </div>
+                            <span class="combat-score-badge">0 : 0</span>
+                            <div class="combat-duelist">
+                                <div class="combat-mini-avatar" style="background: #8b5cf6;">T</div>
+                                <span>Tariq Mahmood</span>
+                            </div>
+                        </div>
+                        <div class="combat-time-ago">5 min ago</div>
+                    </div>
+
+                    <div class="combat-log-card">
+                        <div class="combat-log-top">
+                            <span class="combat-match-tag">MATCH #1</span>
+                            <span class="combat-status-badge combat-badge-victory">
+                                <i class="fa-solid fa-trophy"></i> VICTORY
+                            </span>
+                        </div>
+                        <div class="combat-log-duelists">
+                            <div class="combat-duelist">
+                                <div class="combat-mini-avatar" style="background: #3b82f6;">N</div>
+                                <span>{{ session.get('full_name', 'Player') }} <small style="color:#38bdf8; font-weight:800;">(You)</small></span>
+                            </div>
+                            <span class="combat-score-badge">5 : 2</span>
+                            <div class="combat-duelist">
+                                <div class="combat-mini-avatar" style="background: #ec4899;">P</div>
+                                <span>Priya Sharma</span>
+                            </div>
+                        </div>
+                        <div class="combat-time-ago">12 min ago</div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Column 3: Leaderboard (Top 5) & Daily Challenge -->
+        <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+            
+            <!-- Leaderboard (Top 5) Card -->
+            <div class="arena-card">
+                <div class="arena-card-header">
+                    <div class="arena-card-title">
+                        <i class="fa-solid fa-trophy" style="color: #fbbf24;"></i> Leaderboard <small style="font-size:0.75rem; color:#94a3b8; font-weight:600;">(Top 5)</small>
+                    </div>
+                    <a href="{{ url_for('leaderboard') }}" style="font-size: 0.78rem; color: #38bdf8; text-decoration: none; font-weight: 700;">
+                        View All <i class="fa-solid fa-arrow-right"></i>
+                    </a>
+                </div>
+
+                <div class="leaderboard-top5-list">
+                    {% if top5_leaderboard %}
+                        {% for u in top5_leaderboard %}
+                        <div class="top5-rank-item">
+                            <div class="top5-rank-left">
+                                <span class="top5-rank-num {% if loop.index == 1 %}gold{% elif loop.index == 2 %}silver{% elif loop.index == 3 %}bronze{% endif %}">
+                                    {% if loop.index == 1 %}🥇{% elif loop.index == 2 %}🥈{% elif loop.index == 3 %}🥉{% else %}{{ loop.index }}{% endif %}
+                                </span>
+                                <div class="combat-mini-avatar" style="background: {{ u.avatar_gradient }};">
+                                    {{ u.full_name[0] }}
+                                </div>
+                                <span class="top5-name">{{ u.full_name }}</span>
+                            </div>
+                            <div class="top5-rank-right">
+                                <span class="top5-lvl">Lv {{ u.level }}</span>
+                                <span class="top5-winrate">{{ u.win_rate }}%</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="top5-rank-item">
+                            <div class="top5-rank-left">
+                                <span class="top5-rank-num gold">🥇</span>
+                                <div class="combat-mini-avatar" style="background: #38bdf8;">A</div>
+                                <span class="top5-name">Arjun Mehta</span>
+                            </div>
+                            <div class="top5-rank-right">
+                                <span class="top5-lvl">Lv 20</span>
+                                <span class="top5-winrate">98%</span>
+                            </div>
+                        </div>
+                        <div class="top5-rank-item">
+                            <div class="top5-rank-left">
+                                <span class="top5-rank-num silver">🥈</span>
+                                <div class="combat-mini-avatar" style="background: #c084fc;">S</div>
+                                <span class="top5-name">Sneha Verma</span>
+                            </div>
+                            <div class="top5-rank-right">
+                                <span class="top5-lvl">Lv 19</span>
+                                <span class="top5-winrate">92%</span>
+                            </div>
+                        </div>
+                        <div class="top5-rank-item">
+                            <div class="top5-rank-left">
+                                <span class="top5-rank-num bronze">🥉</span>
+                                <div class="combat-mini-avatar" style="background: #f97316;">R</div>
+                                <span class="top5-name">Raj Patel</span>
+                            </div>
+                            <div class="top5-rank-right">
+                                <span class="top5-lvl">Lv 18</span>
+                                <span class="top5-winrate">89%</span>
+                            </div>
+                        </div>
+                        <div class="top5-rank-item">
+                            <div class="top5-rank-left">
+                                <span class="top5-rank-num">4</span>
+                                <div class="combat-mini-avatar" style="background: #3b82f6;">T</div>
+                                <span class="top5-name">Tariq Mahmood</span>
+                            </div>
+                            <div class="top5-rank-right">
+                                <span class="top5-lvl">Lv 15</span>
+                                <span class="top5-winrate">86%</span>
+                            </div>
+                        </div>
+                        <div class="top5-rank-item">
+                            <div class="top5-rank-left">
+                                <span class="top5-rank-num">5</span>
+                                <div class="combat-mini-avatar" style="background: #ec4899;">M</div>
+                                <span class="top5-name">Maria Thorne</span>
+                            </div>
+                            <div class="top5-rank-right">
+                                <span class="top5-lvl">Lv 14</span>
+                                <span class="top5-winrate">81%</span>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Daily Challenge Widget Card -->
+            <div class="arena-card">
+                <div class="daily-challenge-header">
+                    <div class="daily-challenge-title">
+                        <i class="fa-solid fa-crosshairs" style="color: #f59e0b;"></i> Daily Challenge
+                    </div>
+                    <span class="daily-challenge-timer">New in 12h</span>
+                </div>
+
+                <div class="daily-challenge-body">
+                    <i class="fa-solid fa-bullseye daily-challenge-target-icon"></i>
+                    <div class="daily-challenge-info">
+                        <span class="daily-challenge-text">Win 3 matches today</span>
+                        <span class="daily-challenge-subtext">Complete to earn 100 XP</span>
+                    </div>
+                </div>
+
+                <div class="daily-challenge-progress-row">
+                    <div class="daily-challenge-bar-bg">
+                        <div class="daily-challenge-bar-fill" style="width: {{ (daily_challenge_progress / 3.0) * 100 }}%;"></div>
+                    </div>
+                    <span class="daily-challenge-fraction">{{ daily_challenge_progress }}/3</span>
+                    <i class="fa-solid fa-gift daily-challenge-gift-icon"></i>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- MODAL 1: Radar Matchmaking Modal -->
+<div id="radar-modal" class="battle-modal-backdrop">
+    <div class="battle-modal-card" style="max-width: 480px; text-align: center;">
+        <button onclick="closeRadarModal()" style="position: absolute; right: 1.25rem; top: 1.25rem; background: none; border: none; font-size: 1.3rem; color: #94a3b8; cursor: pointer;"><i class="fa-solid fa-xmark"></i></button>
+
+        <div class="radar-modal-box">
+            <h3 style="font-size: 1.35rem; color: #ffffff; font-weight: 800; font-family: var(--font-heading);">
+                <i class="fa-solid fa-radar" style="color: #06b6d4;"></i> Radar Matchmaking
+            </h3>
+            <p style="font-size: 0.85rem; color: #94a3b8;">
+                Scanning active global rivals in <strong id="radar-selected-domain" style="color:#38bdf8;">All Domains</strong>...
+            </p>
+
+            <div class="radar-sweep-container">
+                <div class="radar-circle-inner"></div>
+                <div class="radar-scanner-beam"></div>
+                <div class="radar-pulse-dot" style="top: 35px; right: 45px;"></div>
+                <div class="radar-pulse-dot" style="bottom: 45px; left: 40px; animation-delay: 0.6s;"></div>
+            </div>
+
+            <div id="radar-status-text" style="font-size: 0.95rem; font-weight: 700; color: #38bdf8;">
+                Searching for opponents...
+            </div>
+
+            <div id="radar-matched-preview" style="display: none; align-items: center; justify-content: center; gap: 0.75rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 0.75rem 1.25rem; border-radius: 12px; width: 100%;">
+                <div id="radar-match-avatar" class="combat-mini-avatar" style="width: 38px; height: 38px; font-size: 1rem;">O</div>
+                <div style="text-align: left;">
+                    <div id="radar-match-name" style="font-weight: 800; color: #ffffff; font-size: 0.95rem;">Opponent</div>
+                    <div id="radar-match-sub" style="font-size: 0.75rem; color: #94a3b8;">Level 15 &bull; 92% Win Rate</div>
+                </div>
+            </div>
+
+            <button class="chat-action-btn" onclick="closeRadarModal()" style="margin: 0; color: #94a3b8;">
+                Cancel Search
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 2: Private Room Generator Modal -->
+<div id="private-room-modal" class="battle-modal-backdrop">
+    <div class="battle-modal-card" style="max-width: 480px; text-align: center;">
+        <button onclick="closePrivateRoomModal()" style="position: absolute; right: 1.25rem; top: 1.25rem; background: none; border: none; font-size: 1.3rem; color: #94a3b8; cursor: pointer;"><i class="fa-solid fa-xmark"></i></button>
+
+        <div style="display: flex; flex-direction: column; gap: 1.25rem; padding: 0.5rem 0;">
+            <div style="font-size: 2.2rem; color: #c084fc;">
+                <i class="fa-solid fa-door-open"></i>
+            </div>
+            <h3 style="font-size: 1.4rem; color: #ffffff; font-weight: 800; font-family: var(--font-heading);">
+                Private Duel Room
+            </h3>
+            <p style="font-size: 0.85rem; color: #94a3b8;">
+                Share this 6-digit room code with your friend to start an exclusive 1v1 battle:
+            </p>
+
+            <div class="private-room-code-box">
+                <span style="font-size: 0.72rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Room PIN Code</span>
+                <span class="private-room-code-number" id="privateRoomCodeText">784 921</span>
+                <button onclick="copyRoomCode()" id="btnCopyRoomCode" style="background: rgba(168, 85, 247, 0.2); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc; font-size: 0.78rem; font-weight: 700; border-radius: 8px; padding: 0.35rem 0.85rem; cursor: pointer;">
+                    <i class="fa-solid fa-copy"></i> Copy Code
+                </button>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem; justify-content: center; margin-top: 0.5rem;">
+                <button class="btn-cta-find-match" style="padding: 0.65rem 1.5rem;" onclick="startPrivateRoomBattle()">
+                    <i class="fa-solid fa-play"></i> Start Duel Now
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 3: Interactive Live 1v1 VS Duel Showdown Modal -->
+<div id="battle-modal" class="battle-modal-backdrop">
+    <div class="battle-modal-card">
+        <button onclick="closeBattleModal()" style="position: absolute; right: 1.5rem; top: 1.5rem; background: none; border: none; font-size: 1.3rem; color: #94a3b8; cursor: pointer;"><i class="fa-solid fa-xmark"></i></button>
+
+        <!-- VS Stage Header -->
+        <div class="battle-vs-stage">
+            
+            <!-- Left: You -->
+            <div class="battle-combatant">
+                <div class="battle-combatant-avatar">
+                    {{ session.get('full_name', 'U')[0] }}
+                </div>
+                <span style="font-weight: 800; font-size: 0.95rem; color: #ffffff;">{{ session.get('full_name', 'You') }}</span>
+                <span class="podium-pill" style="color: #38bdf8; font-size: 0.72rem;">YOU</span>
+                <span id="user-live-score" style="font-size: 1.15rem; font-weight: 900; color: #38bdf8; margin-top: 0.2rem;">Score: 0/5</span>
+            </div>
+
+            <!-- Center: VS Badge -->
+            <div class="battle-vs-badge">
+                <span class="vs-text">VS</span>
+                <span class="podium-pill" id="current-q-pill" style="margin-top: 0.4rem; background: rgba(251, 191, 36, 0.15); color: #fbbf24; border-color: rgba(251, 191, 36, 0.4); font-weight: 800;">
+                    Question 1 of 5
+                </span>
+            </div>
+
+            <!-- Right: Opponent -->
+            <div class="battle-combatant">
+                <div class="battle-combatant-avatar opponent-avatar" id="opponent-avatar-box">
+                    O
+                </div>
+                <span style="font-weight: 800; font-size: 0.95rem; color: #ffffff;" id="opponent-display-name">Rival</span>
+                <span class="podium-pill" style="color: #94a3b8; font-size: 0.72rem;">RIVAL</span>
+                <span id="opp-live-score" style="font-size: 1.15rem; font-weight: 900; color: #06b6d4; margin-top: 0.2rem;">Score: 0/5</span>
+            </div>
+
+        </div>
+
+        <!-- Dynamic Question Box -->
+        <div id="battle-stage-question" class="battle-q-arena-box">
+            
+            <!-- 10-Second Round Countdown Timer Bar -->
+            <div class="battle-timer-bar-wrap">
+                <div class="battle-timer-bar-fill" id="battle-timer-fill" style="width: 100%;"></div>
+            </div>
+
+            <div class="battle-q-text" id="active-question-text">
+                Loading battle challenge...
+            </div>
+
+            <div class="battle-options-list" id="active-options-container">
+                <!-- Dynamically rendered options with A/B/C/D prefixes -->
+            </div>
+
+            <div style="margin-top: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                <button class="chat-action-btn" onclick="forfeitBattle()" style="margin: 0; padding: 0.5rem 1rem; font-size: 0.8rem; color: #ef4444;">
+                    <i class="fa-solid fa-flag"></i> Forfeit Match
+                </button>
+                <button class="btn-primary" id="btn-next-question" style="width: auto; padding: 0.65rem 1.6rem; font-size: 0.88rem;" onclick="handleNextQuestion()" disabled>
+                    Submit Answer <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Post-Match Result Screen -->
+        <div id="battle-result-view" style="display: none; text-align: center; padding: 1.5rem 0;">
+            <div id="battle-result-icon" style="font-size: 4rem; margin-bottom: 0.75rem;"></div>
+            <h2 id="battle-result-title" style="font-size: 2rem; color: #ffffff; margin-bottom: 0.5rem; font-family: var(--font-heading);"></h2>
+            <div id="battle-result-desc" style="color: #94a3b8; font-size: 1.1rem; margin-bottom: 1.75rem;"></div>
+            
+            <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+                <button class="btn-hud-action secondary" onclick="closeBattleModal()">
+                    <i class="fa-solid fa-arrow-left"></i> Return to Arena
+                </button>
+                <button class="btn-hud-action primary" onclick="rematchBattle()">
+                    <i class="fa-solid fa-rotate-right"></i> Rematch Duel
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let activeBattleId = null;
+    let battleQuestions = [];
+    let currentQIndex = 0;
+    let userScore = 0;
+    let oppScore = 0;
+    let selectedAnswer = null;
+    let currentOpponent = null;
+    let currentSelectedCategory = 'All';
+
+    // Timer variables
+    let questionTimerInterval = null;
+    const QUESTION_TIME_LIMIT = 10; // seconds per question
+    let secondsLeft = QUESTION_TIME_LIMIT;
+
+    // Web Audio Synthesizer Sound Effects (zero external audio file dependencies!)
+    const audioCtx = (typeof AudioContext !== 'undefined' || typeof webkitAudioContext !== 'undefined') ? new (window.AudioContext || window.webkitAudioContext)() : null;
+    
+    function playSound(type) {
+        if (!audioCtx) return;
+        try {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'correct') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(587.33, now); // D5
+                osc.frequency.exponentialRampToValueAtTime(880, now + 0.15); // A5
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+                osc.start(now);
+                osc.stop(now + 0.35);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, now); // A3
+                osc.frequency.exponentialRampToValueAtTime(146.83, now + 0.2); // D3
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } else if (type === 'victory') {
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+                    const o = audioCtx.createOscillator();
+                    const g = audioCtx.createGain();
+                    o.connect(g);
+                    g.connect(audioCtx.destination);
+                    o.frequency.setValueAtTime(freq, now + idx * 0.1);
+                    g.gain.setValueAtTime(0.12, now + idx * 0.1);
+                    g.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.1 + 0.3);
+                    o.start(now + idx * 0.1);
+                    o.stop(now + idx * 0.1 + 0.3);
+                });
+            }
+        } catch(e) { /* ignore audio permission restrictions */ }
+    }
+
+    // Rivals search & filter
+    const INITIAL_RIVALS_LIMIT = 5;
+    let isRivalsExpanded = false;
+    const rivalSearch = document.getElementById('rivalSearchInput');
+    const rivalItems = document.querySelectorAll('.rival-row');
+    const rivalsOnlineBadge = document.getElementById('rivals-online-badge');
+    const btnShowMoreRivals = document.getElementById('btnShowMoreRivals');
+
+    function filterRivals() {
+        const query = (rivalSearch ? rivalSearch.value : '').toLowerCase().trim();
+        let matched = [];
+
+        rivalItems.forEach(item => {
+            const name = item.getAttribute('data-name') || '';
+            const username = item.getAttribute('data-username') || '';
+            if (name.includes(query) || username.includes(query)) {
+                matched.push(item);
+            } else {
+                item.style.display = 'none';
+            }
+        });
+
+        const isFiltering = query.length > 0;
+        matched.forEach((item, idx) => {
+            if (isRivalsExpanded || isFiltering || idx < INITIAL_RIVALS_LIMIT) {
+                item.style.display = 'flex';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+
+        if (rivalsOnlineBadge) {
+            rivalsOnlineBadge.innerText = `${matched.length} Online`;
+        }
+    }
+
+    if (rivalSearch) {
+        rivalSearch.addEventListener('input', filterRivals);
+    }
+
+    if (btnShowMoreRivals) {
+        btnShowMoreRivals.addEventListener('click', function() {
+            isRivalsExpanded = !isRivalsExpanded;
+            document.getElementById('showMoreTextRivals').innerText = isRivalsExpanded ? 'Show Less' : 'Show More Rivals';
+            document.getElementById('showMoreIconRivals').className = isRivalsExpanded ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down';
+            filterRivals();
+        });
+    }
+
+    // Domain filter chips
+    const domainChips = document.querySelectorAll('.domain-chip');
+    domainChips.forEach(chip => {
+        chip.addEventListener('click', function() {
+            const cat = this.getAttribute('data-category');
+            if (!cat) return;
+            domainChips.forEach(c => c.classList.remove('active'));
+            this.classList.add('active');
+            currentSelectedCategory = cat;
+            const radarDom = document.getElementById('radar-selected-domain');
+            if (radarDom) radarDom.innerText = cat + (cat === 'All' ? ' Domains' : '');
+        });
+    });
+
+    window.scrollToRivals = function() {
+        const elem = document.getElementById('rivalsSection');
+        if (elem) elem.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    window.showMoreDomains = function() {
+        alert("More domains active in full roster: Cloud & DevOps, Cyber Security, Mathematics & UI/UX!");
+    };
+
+    // MODAL 1: Radar Matchmaking Functions
+    let radarTimeout = null;
+    window.openRadarMatchmaker = function() {
+        const modal = document.getElementById('radar-modal');
+        modal.style.display = 'flex';
+        document.getElementById('radar-status-text').innerText = `Scanning for opponents in ${currentSelectedCategory}...`;
+        document.getElementById('radar-matched-preview').style.display = 'none';
+
+        radarTimeout = setTimeout(() => {
+            // Pick a random rival from list
+            const eligibleRivals = Array.from(rivalItems).filter(r => !r.querySelector('.btn-in-match-action'));
+            const rival = eligibleRivals.length > 0 ? eligibleRivals[Math.floor(Math.random() * eligibleRivals.length)] : rivalItems[0];
+
+            if (rival) {
+                const oppId = rival.getAttribute('data-id');
+                const oppName = rival.querySelector('.rival-full-name').innerText;
+                const oppAvatar = rival.querySelector('.rival-avatar-circle').style.background;
+
+                document.getElementById('radar-status-text').innerHTML = '<span style="color:#10b981;">Match Found! Initializing duel...</span>';
+                const preview = document.getElementById('radar-matched-preview');
+                document.getElementById('radar-match-name').innerText = oppName;
+                document.getElementById('radar-match-avatar').innerText = oppName[0];
+                document.getElementById('radar-match-avatar').style.background = oppAvatar;
+                preview.style.display = 'flex';
+
+                setTimeout(() => {
+                    closeRadarModal();
+                    window.startBattleWith(oppId, oppName, oppAvatar);
+                }, 1200);
+            }
+        }, 1800);
+    };
+
+    window.closeRadarModal = function() {
+        if (radarTimeout) clearTimeout(radarTimeout);
+        document.getElementById('radar-modal').style.display = 'none';
+    };
+
+    // MODAL 2: Private Room Functions
+    window.openPrivateRoomModal = function() {
+        const randCode = Math.floor(100 + Math.random() * 900) + ' ' + Math.floor(100 + Math.random() * 900);
+        document.getElementById('privateRoomCodeText').innerText = randCode;
+        document.getElementById('private-room-modal').style.display = 'flex';
+    };
+
+    window.closePrivateRoomModal = function() {
+        document.getElementById('private-room-modal').style.display = 'none';
+    };
+
+    window.copyRoomCode = function() {
+        const code = document.getElementById('privateRoomCodeText').innerText;
+        navigator.clipboard.writeText(code);
+        const btn = document.getElementById('btnCopyRoomCode');
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+        setTimeout(() => {
+            btn.innerHTML = '<i class="fa-solid fa-copy"></i> Copy Code';
+        }, 2000);
+    };
+
+    window.startPrivateRoomBattle = function() {
+        closePrivateRoomModal();
+        window.openRadarMatchmaker();
+    };
+
+    let isSuddenDeath = false;
+
+    // MODAL 3: Start 1v1 Battle
+    window.startBattleWith = function(oppId, oppName, oppAvatarBg) {
+        currentOpponent = { id: oppId, name: oppName, avatar: oppAvatarBg };
+        isSuddenDeath = false;
+
+        fetch('/quiz-battle/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ opponent_id: oppId, category: currentSelectedCategory })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                activeBattleId = data.battle_id;
+                battleQuestions = data.questions;
+                currentQIndex = 0;
+                userScore = 0;
+                oppScore = 0;
+                isSuddenDeath = false;
+
+                // Setup Opponent UI
+                document.getElementById('opponent-display-name').innerText = oppName;
+                const oppAvatarBox = document.getElementById('opponent-avatar-box');
+                oppAvatarBox.innerText = oppName[0];
+                if (oppAvatarBg) oppAvatarBox.style.background = oppAvatarBg;
+
+                document.getElementById('user-live-score').innerText = 'Score: 0/5';
+                document.getElementById('opp-live-score').innerText = 'Score: 0/5';
+
+                document.getElementById('battle-stage-question').style.display = 'flex';
+                document.getElementById('battle-result-view').style.display = 'none';
+                document.getElementById('battle-modal').style.display = 'flex';
+
+                renderCurrentQuestion();
+            }
+        });
+    };
+
+    function startQuestionTimer() {
+        if (questionTimerInterval) clearInterval(questionTimerInterval);
+        secondsLeft = QUESTION_TIME_LIMIT;
+        const timerFill = document.getElementById('battle-timer-fill');
+        timerFill.style.width = '100%';
+        timerFill.className = 'battle-timer-bar-fill';
+
+        questionTimerInterval = setInterval(() => {
+            secondsLeft -= 0.1;
+            const pct = Math.max(0, (secondsLeft / QUESTION_TIME_LIMIT) * 100);
+            timerFill.style.width = `${pct}%`;
+
+            if (secondsLeft <= 3.5) {
+                timerFill.className = 'battle-timer-bar-fill danger';
+            } else if (secondsLeft <= 6) {
+                timerFill.className = 'battle-timer-bar-fill warning';
+            }
+
+            if (secondsLeft <= 0) {
+                clearInterval(questionTimerInterval);
+                // Auto advance on timeout
+                handleNextQuestion();
+            }
+        }, 100);
+    }
+
+    function renderCurrentQuestion() {
+        const totalStandard = Math.min(5, battleQuestions.length);
+        if (!battleQuestions || currentQIndex >= battleQuestions.length) {
+            finishBattle();
+            return;
+        }
+
+        const q = battleQuestions[currentQIndex];
+        selectedAnswer = null;
+
+        const qPill = document.getElementById('current-q-pill');
+        if (isSuddenDeath) {
+            qPill.innerHTML = '<i class="fa-solid fa-bolt"></i> SUDDEN DEATH TIEBREAKER';
+            qPill.style.background = 'rgba(239, 68, 68, 0.2)';
+            qPill.style.color = '#ef4444';
+            qPill.style.borderColor = 'rgba(239, 68, 68, 0.5)';
+        } else {
+            qPill.innerText = `Question ${currentQIndex + 1} of ${totalStandard}`;
+            qPill.style.background = 'rgba(251, 191, 36, 0.15)';
+            qPill.style.color = '#fbbf24';
+            qPill.style.borderColor = 'rgba(251, 191, 36, 0.4)';
+        }
+
+        document.getElementById('active-question-text').innerText = q.question;
+
+        const container = document.getElementById('active-options-container');
+        container.innerHTML = '';
+
+        const prefixes = ['A', 'B', 'C', 'D'];
+        q.options.forEach((opt, idx) => {
+            const btn = document.createElement('button');
+            btn.className = 'battle-option-button';
+            btn.innerHTML = `<span class="option-prefix">${prefixes[idx] || (idx+1)}</span> <span>${opt}</span>`;
+            btn.onclick = function() {
+                container.querySelectorAll('.battle-option-button').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                selectedAnswer = opt;
+                document.getElementById('btn-next-question').disabled = false;
+            };
+            container.appendChild(btn);
+        });
+
+        const nextBtn = document.getElementById('btn-next-question');
+        nextBtn.disabled = true;
+        if (isSuddenDeath) {
+            nextBtn.innerHTML = 'Decide Sudden Death <i class="fa-solid fa-skull"></i>';
+        } else if (currentQIndex === 4) {
+            nextBtn.innerHTML = 'Submit Final Round <i class="fa-solid fa-flag-checkered"></i>';
+        } else {
+            nextBtn.innerHTML = 'Submit Answer <i class="fa-solid fa-arrow-right"></i>';
+        }
+
+        startQuestionTimer();
+    }
+
+    window.handleNextQuestion = function() {
+        if (questionTimerInterval) clearInterval(questionTimerInterval);
+        const q = battleQuestions[currentQIndex];
+        const isCorrect = selectedAnswer && (selectedAnswer.trim() === q.answer.trim());
+
+        // Visual option feedback
+        const container = document.getElementById('active-options-container');
+        container.querySelectorAll('.battle-option-button').forEach(btn => {
+            btn.onclick = null; // freeze options
+            const txt = btn.querySelector('span:last-child').innerText.trim();
+            if (txt === q.answer.trim()) {
+                btn.classList.add('correct');
+            } else if (btn.classList.contains('selected') && !isCorrect) {
+                btn.classList.add('wrong');
+            }
+        });
+
+        if (isCorrect) {
+            userScore++;
+            playSound('correct');
+        } else {
+            playSound('wrong');
+        }
+
+        // Simulate opponent answer
+        let oppCorrect = false;
+        if (isSuddenDeath) {
+            // In sudden death, if user got it right, 30% chance opp also got it, else opp misses to break tie
+            oppCorrect = isCorrect ? (Math.random() < 0.25) : (Math.random() < 0.75);
+        } else {
+            oppCorrect = Math.random() > 0.35;
+        }
+
+        if (oppCorrect) {
+            oppScore++;
+        }
+
+        const maxDisplay = isSuddenDeath ? 6 : 5;
+        document.getElementById('user-live-score').innerText = `Score: ${userScore}/${maxDisplay}`;
+        document.getElementById('opp-live-score').innerText = `Score: ${oppScore}/${maxDisplay}`;
+
+        setTimeout(() => {
+            // Check if regular 5 questions are done
+            if (currentQIndex === 4 && !isSuddenDeath) {
+                if (userScore === oppScore && battleQuestions.length > 5) {
+                    // TIED! Launch Sudden Death!
+                    isSuddenDeath = true;
+                    currentQIndex = 5;
+                    triggerSuddenDeathAlert();
+                    return;
+                } else {
+                    finishBattle();
+                    return;
+                }
+            } else if (isSuddenDeath || currentQIndex >= 4) {
+                // If sudden death was still tied (rare), break tie in favor of user speed
+                if (userScore === oppScore) {
+                    userScore++;
+                    document.getElementById('user-live-score').innerText = `Score: ${userScore}/6`;
+                }
+                finishBattle();
+            } else {
+                currentQIndex++;
+                renderCurrentQuestion();
+            }
+        }, 900);
+    };
+
+    function triggerSuddenDeathAlert() {
+        const stage = document.getElementById('battle-stage-question');
+        stage.innerHTML = `
+            <div style="text-align: center; padding: 2rem 1rem; animation: pulse 1s infinite alternate;">
+                <div style="font-size: 3.5rem; color: #f59e0b; margin-bottom: 0.5rem; filter: drop-shadow(0 0 20px rgba(245,158,11,0.8));">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+                <h2 style="font-size: 1.8rem; font-weight: 900; color: #ffffff; font-family: var(--font-heading); margin-bottom: 0.5rem;">
+                    SUDDEN DEATH ROUND!
+                </h2>
+                <p style="color: #38bdf8; font-size: 1rem; font-weight: 700; margin-bottom: 1.5rem;">
+                    Scores are tied ${userScore} - ${oppScore}! Next question decides the champion!
+                </p>
+                <div style="font-size: 0.85rem; color: #94a3b8;">
+                    Preparing Sudden Death Question in 2s...
+                </div>
+            </div>
+        `;
+        playSound('victory');
+
+        setTimeout(() => {
+            stage.innerHTML = `
+                <div class="battle-timer-bar-wrap">
+                    <div class="battle-timer-bar-fill danger" id="battle-timer-fill" style="width: 100%;"></div>
+                </div>
+                <div class="battle-q-text" id="active-question-text"></div>
+                <div class="battle-options-list" id="active-options-container"></div>
+                <div style="margin-top: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                    <button class="chat-action-btn" onclick="forfeitBattle()" style="margin: 0; padding: 0.5rem 1rem; font-size: 0.8rem; color: #ef4444;">
+                        <i class="fa-solid fa-flag"></i> Forfeit Match
+                    </button>
+                    <button class="btn-primary" id="btn-next-question" style="width: auto; padding: 0.65rem 1.6rem; font-size: 0.88rem;" onclick="handleNextQuestion()" disabled>
+                        Submit Sudden Death Answer <i class="fa-solid fa-skull"></i>
+                    </button>
+                </div>
+            `;
+            renderCurrentQuestion();
+        }, 2200);
+    }
+
+    function finishBattle() {
+        if (questionTimerInterval) clearInterval(questionTimerInterval);
+        const stage = document.getElementById('battle-stage-question');
+        stage.innerHTML = '<div style="text-align:center; padding: 2rem 0;"><i class="fa-solid fa-spinner fa-spin" style="font-size:2.5rem; color:#8b5cf6;"></i><p style="margin-top:1rem; font-weight:700; color:#ffffff;">Finalizing duel outcome & calculating XP...</p></div>';
+
+        fetch(`/quiz-battle/${activeBattleId}/submit`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                score: userScore, 
+                opponent_score: oppScore,
+                is_sudden_death: isSuddenDeath 
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            stage.style.display = 'none';
+            const resView = document.getElementById('battle-result-view');
+            resView.style.display = 'block';
+            const totalDisplay = isSuddenDeath ? 6 : 5;
+
+            if (data.is_winner) {
+                playSound('victory');
+                document.getElementById('battle-result-icon').innerHTML = '<i class="fa-solid fa-trophy" style="color: #fbbf24; filter: drop-shadow(0 0 20px rgba(251, 191, 36, 0.7));"></i>';
+                document.getElementById('battle-result-title').innerHTML = isSuddenDeath ? '⚡ SUDDEN DEATH VICTORY!' : '🏆 GLORIOUS VICTORY!';
+                document.getElementById('battle-result-desc').innerHTML = `You scored <strong>${data.user_score}/${totalDisplay}</strong> vs Opponent's <strong>${data.opponent_score}/${totalDisplay}</strong>.<br><span style="color: #10b981; font-weight: 800; font-size:1.2rem;">+${data.xp_awarded} XP Credited to Profile!</span>`;
+                triggerConfetti();
+            } else if (data.user_score === data.opponent_score) {
+                document.getElementById('battle-result-icon').innerHTML = '<i class="fa-solid fa-handshake" style="color: #f59e0b;"></i>';
+                document.getElementById('battle-result-title').innerHTML = 'HONORABLE DRAW!';
+                document.getElementById('battle-result-desc').innerHTML = `Both duelists scored <strong>${data.user_score}/${totalDisplay}</strong>.<br><span style="color: #38bdf8; font-weight: 700;">+10 XP Participation Earned!</span>`;
+            } else {
+                document.getElementById('battle-result-icon').innerHTML = '<i class="fa-solid fa-shield-halved" style="color: #38bdf8;"></i>';
+                document.getElementById('battle-result-title').innerHTML = isSuddenDeath ? 'SUDDEN DEATH CONCLUDED' : 'MATCH CONCLUDED';
+                document.getElementById('battle-result-desc').innerHTML = `You scored <strong>${data.user_score}/${totalDisplay}</strong> vs Opponent's <strong>${data.opponent_score}/${totalDisplay}</strong>.<br>Great battle effort! Rematch to claim victory!`;
+            }
+        });
+    }
+
+    window.rematchBattle = function() {
+        if (currentOpponent) {
+            window.startBattleWith(currentOpponent.id, currentOpponent.name, currentOpponent.avatar);
+        } else {
+            closeBattleModal();
+        }
+    };
+
+    window.closeBattleModal = function() {
+        if (questionTimerInterval) clearInterval(questionTimerInterval);
+        document.getElementById('battle-modal').style.display = 'none';
+        window.location.reload();
+    };
+
+    window.forfeitBattle = function() {
+        if (confirm("Are you sure you want to forfeit this battle?")) {
+            closeBattleModal();
+        }
+    };
+
+    function triggerConfetti() {
+        const colors = ['#fbbf24', '#f59e0b', '#8b5cf6', '#06b6d4', '#10b981', '#ffffff'];
+        for (let i = 0; i < 45; i++) {
+            const c = document.createElement('div');
+            c.style.position = 'fixed';
+            c.style.left = (window.innerWidth / 2 + (Math.random() * 300 - 150)) + 'px';
+            c.style.top = (window.innerHeight * 0.35 + (Math.random() * 100 - 50)) + 'px';
+            c.style.width = (Math.random() * 8 + 6) + 'px';
+            c.style.height = (Math.random() * 14 + 6) + 'px';
+            c.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            c.style.borderRadius = '3px';
+            c.style.zIndex = '99999';
+            c.style.pointerEvents = 'none';
+            c.style.transform = `rotate(${Math.random() * 360}deg)`;
+            c.style.transition = 'all 1.5s cubic-bezier(0.25, 1, 0.5, 1)';
+            document.body.appendChild(c);
+
+            setTimeout(() => {
+                c.style.transform = `translate(${Math.random() * 400 - 200}px, ${Math.random() * 300 + 150}px) rotate(${Math.random() * 720}deg)`;
+                c.style.opacity = '0';
+            }, 20);
+
+            setTimeout(() => { c.remove(); }, 1600);
+        }
+    }
+
+    // Initial rivals roster filter
+    filterRivals();
+});
+</script>
+{% endblock %}
+

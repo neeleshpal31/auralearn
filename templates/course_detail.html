@@ -1,0 +1,374 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ course.title }} - AuraLearn{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem;">
+    <a href="{{ url_for('dashboard') }}" style="color: var(--text-secondary); font-size: 0.9rem; text-decoration: none;"><i class="fa-solid fa-arrow-left"></i> Back to Dashboard</a>
+</div>
+
+<div class="detail-grid">
+    <!-- Left Column: Course Metadata & Lessons -->
+    <div>
+        <div class="course-detail-header">
+            <div class="detail-tags">
+                <span class="detail-tag" style="color: var(--accent-cyan); border-color: var(--accent-cyan);">{{ course.category }}</span>
+                <span class="detail-tag" style="color: var(--text-warning); border-color: var(--text-warning);">{{ course.skill_level }}</span>
+            </div>
+            
+            <h1 class="course-detail-title">{{ course.title }}</h1>
+            
+            <div class="course-detail-meta">
+                <span><i class="fa-solid fa-star"></i> <strong>{{ course.rating }}</strong> ({{ course.enrolled_count }} enrolled)</span>
+                <span><i class="fa-regular fa-clock"></i> {{ course.duration }}</span>
+                <span><i class="fa-solid fa-book"></i> {{ lessons | length }} Lessons</span>
+            </div>
+        </div>
+
+        <div>
+            <h3 style="font-size: 1.25rem; margin-bottom: 0.75rem;">About this Course</h3>
+            <p style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 2rem;">{{ course.description }}</p>
+        </div>
+
+        <!-- Syllabus Lessons -->
+        <div class="course-syllabus-section">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 0.5rem;">
+                <div>
+                    <h3 style="font-size: 1.25rem; margin: 0;">Syllabus & Lesson Modules</h3>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.25rem;">
+                        {% if enrolled %}
+                        Click check circles on the left to toggle progress completions.
+                        {% else %}
+                        Enroll in the course to unlock interactive progress checklist.
+                        {% endif %}
+                    </p>
+                </div>
+                {% if enrolled %}
+                <span class="detail-tag" style="color: var(--accent-cyan); border-color: var(--accent-cyan); font-size: 0.8rem;">
+                    {{ completed_lessons | length }} / {{ lessons | length }} Completed
+                </span>
+                {% endif %}
+            </div>
+            
+            <div class="lesson-list">
+                {% for lesson in lessons %}
+                {% set is_comp = lesson.id in completed_lessons %}
+                {% set is_unl = lesson.id in unlocked_lessons %}
+                <div class="lesson-row {% if is_comp %}completed{% elif not is_unl %}locked-lesson-row{% else %}active-unlocked-row{% endif %}" id="lesson-row-{{ lesson.id }}" style="{% if not is_unl and enrolled %}opacity: 0.6; cursor: not-allowed;{% endif %}">
+                    <div class="lesson-row-left">
+                        {% if enrolled %}
+                            {% if is_comp %}
+                            <div class="lesson-status-icon" onclick="toggleLesson({{ course.id }}, {{ lesson.id }})" title="Completed - Click to toggle" style="background: rgba(16, 185, 129, 0.2); border-color: var(--accent-emerald); color: var(--accent-emerald);">
+                                <i class="fa-solid fa-check"></i>
+                            </div>
+                            {% elif is_unl %}
+                            <div class="lesson-status-icon" onclick="window.location.href='{{ url_for('study_notes', course_id=course.id, lesson_id=lesson.id) }}'" title="Current Module - Ready to Learn" style="background: rgba(6, 182, 212, 0.15); border-color: var(--accent-cyan); color: var(--accent-cyan);">
+                                <i class="fa-solid fa-play" style="font-size: 0.75rem; margin-left: 2px;"></i>
+                            </div>
+                            {% else %}
+                            <div class="lesson-status-icon" style="cursor: not-allowed; opacity: 0.5; background: rgba(255,255,255,0.02); border-color: var(--border-color); color: var(--text-muted);" title="Locked - Complete earlier modules in order">
+                                <i class="fa-solid fa-lock"></i>
+                            </div>
+                            {% endif %}
+                        {% else %}
+                        <div class="lesson-status-icon" style="cursor: not-allowed; opacity: 0.5;">
+                            <i class="fa-solid fa-lock"></i>
+                        </div>
+                        {% endif %}
+                        
+                        <div style="flex-grow: 1; {% if enrolled and is_unl %}cursor: pointer;{% endif %}" {% if enrolled and is_unl %}onclick="window.location.href='{{ url_for('study_notes', course_id=course.id, lesson_id=lesson.id) }}'"{% elif enrolled and not is_unl %}onclick="alert('🔒 Module Locked: Please complete Module {{ lesson.order_num - 1 }} in sequence first to unlock this module.')"{% endif %}>
+                            <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+                                <span class="lesson-title-text" style="{% if enrolled and is_unl %}text-decoration: underline; text-decoration-color: transparent; transition: var(--transition-smooth);{% endif %}" onmouseover="{% if enrolled and is_unl %}this.style.color='var(--accent-cyan)'; this.style.textDecorationColor='var(--accent-cyan)'{% endif %}" onmouseout="{% if enrolled and is_unl %}this.style.color=''; this.style.textDecorationColor='transparent'{% endif %}">
+                                    {{ lesson.order_num }}. {{ lesson.title }}
+                                </span>
+                                {% if enrolled %}
+                                    {% if is_comp %}
+                                    <span class="detail-tag" style="font-size: 0.68rem; padding: 0.05rem 0.4rem; color: var(--accent-emerald); border-color: rgba(16, 185, 129, 0.3);">
+                                        <i class="fa-solid fa-check"></i> Completed
+                                    </span>
+                                    {% elif is_unl %}
+                                    <span class="detail-tag" style="font-size: 0.68rem; padding: 0.05rem 0.4rem; color: var(--accent-cyan); border-color: rgba(6, 182, 212, 0.3); background: rgba(6, 182, 212, 0.08);">
+                                        <i class="fa-solid fa-play"></i> Next Up
+                                    </span>
+                                    {% else %}
+                                    <span class="detail-tag" style="font-size: 0.68rem; padding: 0.05rem 0.4rem; color: var(--text-muted); border-color: rgba(255,255,255,0.1); background: rgba(0,0,0,0.2);">
+                                        <i class="fa-solid fa-lock"></i> Locked (Complete Module {{ lesson.order_num - 1 }})
+                                    </span>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">{{ lesson.content }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="lesson-row-right">
+                        <span><i class="fa-regular fa-clock"></i> {{ lesson.duration }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- FINAL CERTIFICATION EXAM SECTION -->
+        <div class="course-exam-callout-wrapper" id="syllabus-exam-callout" style="margin-top: 2rem;">
+            {% if certificate %}
+                <!-- State 3: Certificate Already Earned -->
+                <div class="exam-banner-card earned">
+                    <div class="exam-banner-content">
+                        <div class="exam-badge-tag gold">
+                            <i class="fa-solid fa-certificate"></i> Verified Academic Credential
+                        </div>
+                        <h3 class="exam-banner-title">🎓 Certificate of Completion Earned!</h3>
+                        <p class="exam-banner-desc">
+                            Congratulations! You have passed the Final Examination with <strong>Grade {{ certificate.grade }}</strong> (Score: {{ certificate.exam_score }}%). Your verified credential is officially registered and shareable.
+                        </p>
+                        <div class="exam-cert-id-tag">
+                            <i class="fa-solid fa-fingerprint"></i> Credential ID: <strong>{{ certificate.certificate_code }}</strong>
+                        </div>
+                        <div class="exam-banner-actions">
+                            <a href="{{ url_for('download_certificate_pdf_route', cert_code=certificate.certificate_code) }}" class="btn-secondary cert-retake-btn" style="border: 1px solid rgba(251, 191, 36, 0.4); color: #fbbf24; background: rgba(251, 191, 36, 0.12); font-weight: 700;">
+                                <i class="fa-solid fa-file-arrow-down"></i> Download PDF
+                            </a>
+                            <a href="{{ url_for('view_certificate', cert_code=certificate.certificate_code) }}" class="btn-primary cert-banner-btn">
+                                <i class="fa-solid fa-award"></i> View Certificate
+                            </a>
+                            <a href="{{ url_for('course_exam', course_id=course.id) }}" class="btn-secondary cert-retake-btn">
+                                <i class="fa-solid fa-rotate-right"></i> Retake Exam
+                            </a>
+                        </div>
+                    </div>
+                    <div class="exam-banner-graphic gold">
+                        <i class="fa-solid fa-award"></i>
+                    </div>
+                </div>
+
+            {% elif progress_percent >= 100 %}
+                <!-- State 2: 100% Completed, Ready for Final Exam -->
+                <div class="exam-banner-card ready">
+                    <div class="exam-banner-content">
+                        <div class="exam-badge-tag secure">
+                            <i class="fa-solid fa-shield-halved"></i> SECURE PROCTOR MODE
+                        </div>
+                        <h3 class="exam-banner-title">🛡️ Final Certification Exam Unlocked!</h3>
+                        <p class="exam-banner-desc">
+                            Incredible achievement! You have completed 100% of the syllabus modules. Demonstrate your subject mastery in our proctored secure exam environment to claim your official verified Certificate of Completion.
+                        </p>
+                        <div class="exam-specs-pills">
+                            <span><i class="fa-regular fa-clock"></i> 60 Minutes (1 Hour)</span>
+                            <span><i class="fa-solid fa-list-check"></i> 40 Questions</span>
+                            <span><i class="fa-solid fa-percent"></i> Passing: 70%</span>
+                            <span><i class="fa-solid fa-star"></i> +100 XP</span>
+                        </div>
+                        <div class="exam-banner-actions">
+                            <a href="{{ url_for('course_exam', course_id=course.id) }}" class="btn-primary cert-launch-btn">
+                                <i class="fa-solid fa-expand"></i> Launch Secure Final Exam <i class="fa-solid fa-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="exam-banner-graphic ready">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                </div>
+
+            {% else %}
+                <!-- State 1: Locked until 100% completion -->
+                <div class="exam-banner-card locked">
+                    <div class="exam-banner-content">
+                        <div class="exam-badge-tag locked">
+                            <i class="fa-solid fa-lock"></i> Final Certification Exam (Locked)
+                        </div>
+                        <h3 class="exam-banner-title" style="color: var(--text-secondary);">🔒 Complete All Lessons to Unlock Final Exam</h3>
+                        <p class="exam-banner-desc">
+                            The Final Certification Exam runs in Secure Proctor Mode with strict anti-cheat monitoring. Complete all {{ lessons | length }} syllabus modules to unlock the exam and earn your verified credential.
+                        </p>
+                        <div class="exam-lock-progress-bar">
+                            <div class="exam-lock-fill" style="width: {{ progress_percent }}%;"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
+                            <span style="font-size: 0.8rem; color: var(--text-muted);">
+                                Progress: {{ progress_percent | int }}% ({{ completed_lessons | length }}/{{ lessons | length }} lessons complete)
+                            </span>
+                            <a href="{{ url_for('course_demo_exam', course_id=course.id) }}" class="btn-secondary" style="border: 1px solid rgba(251, 191, 36, 0.4); background: rgba(251, 191, 36, 0.1); color: #fbbf24; font-size: 0.82rem; font-weight: 700; padding: 0.4rem 0.9rem; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem;">
+                                <i class="fa-solid fa-flask"></i> Try Demo Exam (Open Anytime)
+                            </a>
+                        </div>
+                    </div>
+                    <div class="exam-banner-graphic locked">
+                        <i class="fa-solid fa-lock"></i>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Right Column: Enrollment CTA & Course Progress -->
+    <div>
+        <div class="detail-sidebar-panel">
+            {% if not enrolled %}
+                <div class="enroll-card-price">Free Access</div>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;">
+                    Unlock all {{ lessons | length }} modules, AI interactive tutor, verified certificate & coding sandbox.
+                </p>
+                <form action="{{ url_for('enroll', course_id=course.id) }}" method="POST">
+                    <button type="submit" class="btn-primary action-btn-large">Enroll Now <i class="fa-solid fa-right-to-bracket"></i></button>
+                </form>
+                <div style="margin-top: 0.75rem; text-align: center;">
+                    <a href="{{ url_for('course_demo_exam', course_id=course.id) }}" style="color: #fbbf24; font-size: 0.82rem; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 0.35rem;">
+                        <i class="fa-solid fa-flask"></i> Try Demo Exam First
+                    </a>
+                </div>
+            {% else %}
+                <div style="font-size: 0.85rem; font-weight:600; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 0.5rem;">Your Learning Progress</div>
+                <div style="display: flex; justify-content: space-between; font-size: 1.25rem; font-weight: 800; margin-bottom: 0.5rem;">
+                    <span>Completed</span>
+                    <span class="progress-percent-val" id="detail-progress-val">{{ progress_percent | int }}%</span>
+                </div>
+                <div class="progress-bar-container" style="height: 8px; margin-bottom: 1.5rem;">
+                    <div class="progress-bar-fill" id="detail-progress-bar" style="width: {{ progress_percent }}%;"></div>
+                </div>
+
+                <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 12px; padding: 1rem; margin-bottom: 1.25rem;">
+                    <div style="font-size: 0.85rem; font-weight: 600; display: flex; align-items:center; gap: 0.5rem;">
+                        <i class="fa-solid fa-graduation-cap" style="color: var(--accent-cyan);"></i> Status
+                    </div>
+                    <div style="font-size: 0.9rem; margin-top: 0.25rem;" id="completion-status-text">
+                        {% if progress_percent >= 100 %}
+                        Completed (Graduate!)
+                        {% else %}
+                        In Progress ({{ completed_lessons | length }} / {{ lessons | length }} lessons)
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Exam & Certificate Action Button in Sidebar -->
+                {% if certificate %}
+                <div style="margin-bottom: 0.75rem;">
+                    <a href="{{ url_for('view_certificate', cert_code=certificate.certificate_code) }}" class="btn-primary action-btn-large" style="background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%); box-shadow: 0 4px 15px rgba(251, 191, 36, 0.3); text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                        <i class="fa-solid fa-award"></i> View Certificate
+                    </a>
+                </div>
+                {% elif progress_percent >= 100 %}
+                <div id="certificate-claim-zone" style="margin-bottom: 0.75rem;">
+                    <a href="{{ url_for('course_exam', course_id=course.id) }}" class="btn-primary action-btn-large" style="background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35); text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem; animation: pulse 1.5s infinite alternate;">
+                        <i class="fa-solid fa-shield-halved"></i> Take Final Exam
+                    </a>
+                </div>
+                {% endif %}
+
+                <!-- Demo Exam Action in Sidebar (Always Available) -->
+                <div style="margin-bottom: 0.75rem;">
+                    <a href="{{ url_for('course_demo_exam', course_id=course.id) }}" class="btn-secondary action-btn-large" style="border: 1px solid rgba(251, 191, 36, 0.35); background: rgba(251, 191, 36, 0.08); color: #fbbf24; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-weight: 700;">
+                        <i class="fa-solid fa-flask"></i> Practice Demo Exam
+                    </a>
+                </div>
+                
+                <!-- Quick Assessment Quiz to update Recommendations -->
+                <button type="button" class="btn-primary action-btn-large" onclick="openQuizModal()" style="background: linear-gradient(135deg, #06b6d4 0%, #8b5cf6 100%);">
+                    Take Skill Check <i class="fa-solid fa-circle-question"></i>
+                </button>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+
+<!-- Skill Check Quiz Modal -->
+<div class="modal" id="quiz-modal">
+    <div class="modal-content">
+        <span class="modal-close" onclick="closeQuizModal()">&times;</span>
+        <h3 style="font-size: 1.3rem; margin-bottom: 0.5rem; display:flex; align-items:center; gap:0.5rem;">
+            <i class="fa-solid fa-brain" style="color: var(--accent-purple);"></i> Course Evaluation Check
+        </h3>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.5rem;">Answer this question to calibrate recommendations based on your performance.</p>
+        
+        <form id="quiz-form" onsubmit="submitQuiz(event, {{ course.id }})">
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label class="form-label" style="font-size: 0.95rem; font-weight:600; color: #ffffff; line-height: 1.4; margin-bottom: 1rem;" id="quiz-question-lbl">
+                    <!-- Loaded dynamically via js based on course tags -->
+                    Loading question...
+                </label>
+                
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;" id="quiz-options-container">
+                    <!-- Options loaded dynamically -->
+                </div>
+            </div>
+            
+            <button type="submit" class="btn-primary">Submit Answer</button>
+        </form>
+
+        <div id="quiz-feedback-box" style="margin-top: 1rem; display: none;"></div>
+    </div>
+</div>
+
+<!-- Floating Chatbot FAB -->
+<button class="chat-fab" id="chat-fab-btn" onclick="toggleChatPanel()">
+    <i class="fa-solid fa-robot"></i>
+</button>
+
+<!-- Course AI Chat Panel -->
+<div class="chat-panel" id="chat-assistant-panel">
+    <div class="chat-header">
+        <span class="chat-header-title">
+            <i class="fa-solid fa-brain"></i> Course AI Assistant
+        </span>
+        <span class="chat-header-close" onclick="toggleChatPanel()">&times;</span>
+    </div>
+    
+    <div class="chat-body" id="chat-history-log">
+        <div class="chat-bubble assistant">
+            Hello! I am your AI learning assistant for **{{ course.title }}**. Ask me any question, or use the shortcuts below to generate custom quizzes and lecture slides!
+        </div>
+    </div>
+    
+    <!-- Quick Actions suggestions -->
+    <div class="chat-actions">
+        <button class="chat-action-btn" onclick="triggerQuizAction({{ course.id }})">
+            <i class="fa-solid fa-list-check"></i> Generate Quiz
+        </button>
+        <button class="chat-action-btn" onclick="triggerSlidesAction({{ course.id }})">
+            <i class="fa-solid fa-person-chalkboard"></i> Create PPT Slides
+        </button>
+    </div>
+    
+    <div class="chat-footer">
+        <input type="text" class="chat-input" id="chat-message-input" placeholder="Ask about syllabus, loops, variables..." onkeydown="handleChatKey(event, {{ course.id }})">
+        <button class="chat-send-btn" onclick="sendChatMessage({{ course.id }})">
+            <i class="fa-solid fa-paper-plane"></i>
+        </button>
+    </div>
+</div>
+
+<!-- PPT Slide Deck Modal -->
+<div class="modal" id="slides-deck-modal">
+    <div class="modal-content slides-modal-content">
+        <div class="slide-deck-header">
+            <span class="chat-header-title" style="font-size:1.15rem; color:#ffffff;">
+                <i class="fa-solid fa-person-chalkboard"></i> Lecture Presentation Slides
+            </span>
+            <div style="display:flex; gap:1rem; align-items:center;">
+                <button class="chat-action-btn" onclick="downloadSlides()">
+                    <i class="fa-solid fa-download"></i> Download PPT Text
+                </button>
+                <span class="modal-close" onclick="closeSlidesModal()" style="position:static; font-size:1.5rem;">&times;</span>
+            </div>
+        </div>
+        
+        <div class="slide-container" id="slides-deck-container">
+            <!-- Slides loaded dynamically -->
+        </div>
+        
+        <div class="slide-controls">
+            <button class="slide-btn" id="prev-slide-btn" onclick="changeSlide(-1)">
+                <i class="fa-solid fa-arrow-left"></i> Previous
+            </button>
+            <span class="slide-counter" id="slide-deck-counter">Slide 1 of 5</span>
+            <button class="slide-btn" id="next-slide-btn" onclick="changeSlide(1)">
+                Next <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}

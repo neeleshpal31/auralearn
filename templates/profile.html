@@ -1,0 +1,343 @@
+{% extends 'base.html' %}
+
+{% block title %}User Profile & Settings - AuraLearn{% endblock %}
+
+{% block content %}
+<div class="profile-master-container">
+    <!-- Top Bar -->
+    <div class="top-bar-modern" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem;">
+        <div>
+            <h1 class="page-title-modern" style="display: flex; align-items: center; gap: 0.6rem; font-size: 1.6rem; font-weight: 800; color: var(--text-primary); margin: 0;">
+                <i class="fa-regular fa-user" style="color: #2563eb;"></i> Profile & Settings
+            </h1>
+            <p style="color: var(--text-secondary); font-size: 0.92rem; margin-top: 0.25rem;">
+                Manage your profile, learning preferences, and achievements.
+            </p>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="profile-tabs-bar">
+        <button class="profile-tab-pill active" onclick="switchProfileTab('profile')" id="tab-btn-profile">Profile</button>
+        <button class="profile-tab-pill" onclick="switchProfileTab('achievements')" id="tab-btn-achievements">Achievements</button>
+        <button class="profile-tab-pill" onclick="switchProfileTab('stats')" id="tab-btn-stats">Learning Stats</button>
+        <button class="profile-tab-pill" onclick="switchProfileTab('settings')" id="tab-btn-settings">Settings</button>
+    </div>
+
+    <!-- 1. Profile Tab (Matches Master Board Tile 6) -->
+    <div id="tab-content-profile" class="profile-tab-pane active">
+        <div class="master-profile-grid">
+            
+            <!-- Left Column: User Summary Card -->
+            <div class="profile-user-summary-card">
+                <div class="profile-avatar-large">
+                    {{ user.full_name[0] if user.full_name else (user.username[0] | upper) }}
+                </div>
+                
+                <h2 class="profile-card-name">{{ user.full_name or 'Neelesh Pal' }}</h2>
+                <div class="profile-card-handle">@{{ user.username }}</div>
+                
+                <div class="profile-scholar-badge">
+                    <i class="fa-solid fa-graduation-cap"></i> Lv {{ user_level }} Scholar
+                </div>
+                
+                <!-- XP Meter -->
+                <div class="profile-xp-section">
+                    <div class="profile-xp-label-row">
+                        <span>{{ level_info.xp_in_level }} / {{ level_info.next_level_xp - level_info.base_xp }} XP ({{ level_info.progress_pct }}%)</span>
+                    </div>
+                    <div class="profile-xp-bar-bg">
+                        <div class="profile-xp-bar-fill" style="width: {{ level_info.progress_pct }}%;"></div>
+                    </div>
+                </div>
+                
+                <!-- 2x2 Mini Stats Grid -->
+                <div class="profile-stats-mini-grid">
+                    <div class="mini-stat-tile">
+                        <div class="mini-stat-num">{{ enrollments | length if enrollments else 6 }}</div>
+                        <div class="mini-stat-lbl">Courses</div>
+                    </div>
+                    <div class="mini-stat-tile">
+                        <div class="mini-stat-num">{{ completed_quizzes_count if completed_quizzes_count else 2 }}</div>
+                        <div class="mini-stat-lbl">Quizzes/Tests</div>
+                    </div>
+                    <div class="mini-stat-tile">
+                        <div class="mini-stat-num">{{ certificates | length if certificates else 1 }}</div>
+                        <div class="mini-stat-lbl">Certificates</div>
+                    </div>
+                    <div class="mini-stat-tile">
+                        <div class="mini-stat-num">{{ (badges | selectattr('is_unlocked') | list | length) if badges else 3 }}</div>
+                        <div class="mini-stat-lbl">Achievements</div>
+                    </div>
+                </div>
+                
+                <!-- Edit Profile Outline Button -->
+                <button type="button" class="btn-profile-outline-edit" onclick="document.getElementById('profile-name').focus();">
+                    <i class="fa-solid fa-pen" style="font-size:0.8rem; margin-right:0.4rem;"></i> Edit Profile
+                </button>
+            </div>
+
+            <!-- Right Column: Personal Information Form Card -->
+            <div class="profile-form-card">
+                <h3 class="profile-form-title">Personal Information</h3>
+                
+                <form action="{{ url_for('profile') }}" method="POST" id="profileUpdateForm">
+                    <div class="form-group-modern">
+                        <label class="form-label-modern" for="profile-name">Full Name</label>
+                        <input class="form-input-modern" type="text" id="profile-name" name="full_name" value="{{ user.full_name }}" placeholder="e.g. Neelesh Pal" required>
+                    </div>
+                    
+                    <div class="form-group-modern">
+                        <label class="form-label-modern" for="profile-username">Username (Read-Only)</label>
+                        <input class="form-input-modern readonly-input" type="text" id="profile-username" value="{{ user.username }}" readonly>
+                    </div>
+
+                    <div class="form-group-modern">
+                        <label class="form-label-modern" for="profile-email">Email</label>
+                        <input class="form-input-modern" type="email" id="profile-email" name="email" value="{{ user.email if user.email else (user.username ~ '@example.com') }}" placeholder="neelesh@example.com">
+                    </div>
+
+                    <div class="form-group-modern">
+                        <label class="form-label-modern" for="profile-level">Target Skill Level</label>
+                        <select class="form-input-modern" id="profile-level" name="skill_level">
+                            <option value="Beginner" {% if user.skill_level == 'Beginner' %}selected{% endif %}>Beginner</option>
+                            <option value="Intermediate" {% if user.skill_level == 'Intermediate' or not user.skill_level %}selected{% endif %}>Intermediate</option>
+                            <option value="Advanced" {% if user.skill_level == 'Advanced' %}selected{% endif %}>Advanced</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group-modern">
+                        <label class="form-label-modern" for="profile-goals">Learning Goals</label>
+                        <input class="form-input-modern" type="text" id="profile-goals" name="learning_goals" value="{{ user.learning_goals or 'python, web development, AI' }}" placeholder="python, web development, AI" required>
+                    </div>
+
+                    <!-- Interest Chips for backend validation requirement -->
+                    <div style="margin-top: 1rem; margin-bottom: 1.5rem;">
+                        <label class="form-label-modern" style="margin-bottom: 0.5rem; display: flex; justify-content: space-between;">
+                            <span>Interests & Focus Areas</span>
+                            <span style="font-size: 0.75rem; color: var(--text-muted);">Choose at least 3</span>
+                        </label>
+                        <div class="profile-interest-chips-wrap">
+                            {% set interests_list = (user.interests or 'Python,JavaScript,React,SQL').split(',') %}
+                            {% for tag in ['Python', 'JavaScript', 'HTML/CSS', 'React', 'SQL', 'Machine Learning', 'Data Science', 'Cloud & DevOps'] %}
+                            <label class="interest-chip-label">
+                                <input type="checkbox" name="interests" value="{{ tag }}" class="interest-chip-checkbox"
+                                       {% if tag in interests_list or loop.index <= 3 %}checked{% endif %}>
+                                <span class="interest-chip-btn">{{ tag }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
+                        <button type="submit" class="btn-update-profile-submit">
+                            Update Profile
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 2. Achievements Tab -->
+    <div id="tab-content-achievements" class="profile-tab-pane" style="display: none;">
+        <!-- Verified Certificates Showcase -->
+        <div class="dashboard-card" style="margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+                <h3 class="card-title" style="margin: 0;"><i class="fa-solid fa-award" style="color: #f59e0b;"></i> Verified Certificates ({{ certificates | length }})</h3>
+                <span class="detail-tag" style="background: rgba(245, 158, 11, 0.1); color: #d97706; border-color: rgba(245, 158, 11, 0.3); font-size: 0.75rem; font-weight: 700;">
+                    <i class="fa-solid fa-shield-halved"></i> Secure Mode
+                </span>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+                {% if certificates %}
+                    {% for cert in certificates %}
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); border: 1px solid var(--border-color); padding: 1rem 1.25rem; border-radius: 12px; box-shadow: var(--shadow-sm);">
+                        <div style="display: flex; gap: 1rem; align-items: center;">
+                            <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); display: flex; align-items: center; justify-content: center; color: #d97706; font-size: 1.25rem; flex-shrink: 0;">
+                                <i class="fa-solid fa-certificate"></i>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">{{ cert.course_title }}</div>
+                                <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 0.2rem; display: flex; gap: 0.5rem; align-items: center;">
+                                    <span style="color: #2563eb; font-weight: 600;">Grade: {{ cert.grade }} ({{ cert.exam_score }}%)</span>
+                                    <span>•</span>
+                                    <span>Issued: {{ cert.issued_date }}</span>
+                                </div>
+                                <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem; font-family: monospace;">
+                                    ID: {{ cert.certificate_code }}
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                            <a href="{{ url_for('download_certificate_pdf_route', cert_code=cert.certificate_code) }}" class="btn-secondary" style="padding: 0.5rem 0.85rem; font-size: 0.8rem; font-weight: 700; text-decoration: none; border-radius: 8px; white-space: nowrap;">
+                                <i class="fa-solid fa-file-arrow-down"></i> Download PDF
+                            </a>
+                            <a href="{{ url_for('view_certificate', cert_code=cert.certificate_code) }}" class="btn-primary" style="padding: 0.5rem 1rem; font-size: 0.8rem; font-weight: 700; text-decoration: none; border-radius: 8px; white-space: nowrap;">
+                                <i class="fa-solid fa-award"></i> View Credential
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 2rem 1rem; border: 1px dashed var(--border-color); border-radius: 12px; background: var(--bg-hover);">
+                        <div style="width: 48px; height: 48px; border-radius: 50%; background: rgba(0,0,0,0.04); display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem; color: var(--text-muted); font-size: 1.25rem;">
+                            <i class="fa-solid fa-award"></i>
+                        </div>
+                        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.35rem;">No Certificates Earned Yet</div>
+                        <p style="font-size: 0.78rem; color: var(--text-secondary); max-width: 320px; margin: 0 auto;">
+                            Complete 100% of any course syllabus and pass the proctored Secure Final Exam (>= 70%) to earn your verified credential!
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Badges & Achievements -->
+        <div class="dashboard-card">
+            <h3 class="card-title" style="margin-bottom: 1.25rem;"><i class="fa-solid fa-trophy" style="color: #f59e0b;"></i> Badges & Medals</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
+                {% for b in badges %}
+                <div style="padding: 1rem; border-radius: 12px; background: var(--card-bg); border: 1px solid {% if b.is_unlocked %}rgba(37, 99, 235, 0.3){% else %}var(--border-color){% endif %}; opacity: {% if b.is_unlocked %}1{% else %}0.65{% endif %};">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
+                        <div style="display: flex; align-items: center; gap: 0.6rem;">
+                            <i class="fa-solid {{ b.icon }}" style="color: {{ b.color }}; font-size: 1.1rem;"></i>
+                            <span style="font-weight: 700; font-size: 0.92rem; color: var(--text-primary);">{{ b.title }}</span>
+                        </div>
+                        {% if b.is_unlocked %}
+                        <span class="detail-tag" style="background: rgba(16,185,129,0.1); color: var(--text-success); border-color: rgba(16,185,129,0.3); font-size: 0.7rem; font-weight: 700;">UNLOCKED</span>
+                        {% else %}
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">{{ b.current }}/{{ b.target }}</span>
+                        {% endif %}
+                    </div>
+                    <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.45rem;">{{ b.desc }}</p>
+                    {% if not b.is_unlocked %}
+                    <div class="progress-bar-container" style="height: 5px;">
+                        <div class="progress-bar-fill" style="width: {{ b.progress_pct }}%; background: {{ b.color }};"></div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Learning Stats Tab -->
+    <div id="tab-content-stats" class="profile-tab-pane" style="display: none;">
+        <div class="dashboard-card">
+            <h3 class="card-title" style="margin-bottom: 1.25rem;"><i class="fa-solid fa-chart-pie" style="color: #2563eb;"></i> Detailed Learning Performance</h3>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                <div style="background: var(--bg-hover); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem; text-align:center;">
+                    <div style="font-size: 1.8rem; font-weight:800; color: #2563eb;">{{ completed_lessons_count }}</div>
+                    <div style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.25rem;">Lessons Finished</div>
+                </div>
+                
+                <div style="background: var(--bg-hover); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem; text-align:center;">
+                    <div style="font-size: 1.8rem; font-weight:800; color: #06b6d4;">{{ completed_quizzes_count }}</div>
+                    <div style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.25rem;">Quizzes Passed</div>
+                </div>
+
+                <div style="background: var(--bg-hover); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem; text-align:center;">
+                    <div style="font-size: 1.8rem; font-weight:800; color: #f59e0b;">{{ completed_challenges_count }}</div>
+                    <div style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.25rem;">Challenges Solved</div>
+                </div>
+                
+                <div style="background: var(--bg-hover); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem; text-align:center;">
+                    <div style="font-size: 1.8rem; font-weight:800; color: #10b981;">{{ completed_count }}</div>
+                    <div style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.25rem;">Courses Completed</div>
+                </div>
+            </div>
+
+            <!-- Global standing -->
+            <div style="background: var(--bg-hover); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.5rem;">
+                    <span style="font-size:0.95rem; font-weight:700; color:var(--text-primary);">Level {{ user_level }} Scholar • Rank #{{ user_rank }}</span>
+                    <span style="font-size:0.95rem; font-weight:700; color:#2563eb;">{{ user_xp }} Total XP</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:var(--text-secondary); margin-bottom:0.4rem;">
+                    <span>Progress to Level {{ user_level + 1 }}</span>
+                    <span>{{ level_info.xp_in_level }} / {{ level_info.next_level_xp - level_info.base_xp }} XP</span>
+                </div>
+                <div class="progress-bar-container" style="height:8px; background:var(--border-color); border-radius:4px;">
+                    <div class="progress-bar-fill" style="width: {{ level_info.progress_pct }}%; background: #2563eb; border-radius:4px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Settings Tab -->
+    <div id="tab-content-settings" class="profile-tab-pane" style="display: none;">
+        <div class="dashboard-card" style="max-width: 600px;">
+            <h3 class="card-title" style="margin-bottom: 1.25rem;"><i class="fa-solid fa-gear" style="color: #2563eb;"></i> App Preferences</h3>
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.85rem 0; border-bottom: 1px solid var(--border-color);">
+                    <div>
+                        <div style="font-weight: 600; color: var(--text-primary);">Theme Preference</div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">Toggle between clean light mode and dark mode</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="profileDarkToggle" onchange="toggleTheme();">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.85rem 0; border-bottom: 1px solid var(--border-color);">
+                    <div>
+                        <div style="font-weight: 600; color: var(--text-primary);">Email Notifications</div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">Receive updates about new courses and challenges</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" checked>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+
+                <div style="padding-top: 0.5rem;">
+                    <a href="{{ url_for('logout') }}" class="btn-secondary" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.3); text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.25rem; font-weight: 600; border-radius: 8px;">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out of Account
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+function switchProfileTab(tabName) {
+    // Hide all tab panes
+    const panes = document.querySelectorAll('.profile-tab-pane');
+    panes.forEach(p => {
+        p.classList.remove('active');
+        p.style.display = 'none';
+    });
+
+    // Remove active from tab buttons
+    const pills = document.querySelectorAll('.profile-tab-pill');
+    pills.forEach(p => p.classList.remove('active'));
+
+    // Activate selected
+    const activePane = document.getElementById('tab-content-' + tabName);
+    const activeBtn = document.getElementById('tab-btn-' + tabName);
+    if (activePane) {
+        activePane.classList.add('active');
+        activePane.style.display = 'block';
+    }
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+    }
+}
+
+// Sync dark mode switch state
+document.addEventListener('DOMContentLoaded', () => {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const profileToggle = document.getElementById('profileDarkToggle');
+    if (profileToggle) {
+        profileToggle.checked = isDark;
+    }
+});
+</script>
+{% endblock %}

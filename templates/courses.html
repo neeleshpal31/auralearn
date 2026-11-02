@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block title %}All Courses - AuraLearn{% endblock %}
+
+{% block content %}
+<div class="courses-page-header">
+    <div class="courses-page-title-box">
+        <h1 class="page-title">Explore All Courses</h1>
+        <p class="page-subtitle">Learn new skills with our curated courses and track your progress.</p>
+    </div>
+    
+    <div class="courses-sort-box">
+        <label for="sort-courses" class="sort-label">Sort By</label>
+        <select class="courses-sort-select" id="sort-courses">
+            <option value="students">Most Popular</option>
+            <option value="rating">Highest Rated</option>
+            <option value="default">Newest</option>
+        </select>
+    </div>
+</div>
+
+<!-- Category Filter Pills Bar (matching screenshot) -->
+<div class="courses-category-bar">
+    <button class="cat-pill active" onclick="filterByCategory('All', this)">All</button>
+    <button class="cat-pill" onclick="filterByCategory('Programming', this)">Programming</button>
+    <button class="cat-pill" onclick="filterByCategory('Web Development', this)">Web Development</button>
+    <button class="cat-pill" onclick="filterByCategory('Data Science', this)">Data Science</button>
+    <button class="cat-pill" onclick="filterByCategory('AI & ML', this)">AI & ML</button>
+    <button class="cat-pill" onclick="filterByCategory('Database', this)">Database</button>
+    <button class="cat-pill" onclick="filterByCategory('Aptitude', this)">Aptitude</button>
+    <button class="cat-pill" onclick="filterByCategory('Science', this)">Science</button>
+</div>
+
+<!-- Course Listing Grid (Matching Master Design) -->
+<div class="courses-catalog-grid" id="catalog-grid">
+    {% if courses %}
+        {% for course in courses %}
+        <div class="master-course-card" 
+             data-title="{{ course.title | lower }}" 
+             data-category="{{ course.category }}" 
+             data-level="{{ course.skill_level }}" 
+             data-tags="{{ course.tags | lower }}" 
+             data-description="{{ course.description | lower }}"
+             data-rating="{{ course.rating }}"
+             data-students="{{ course.enrolled_count }}">
+            
+            <div class="master-course-top">
+                <div class="course-squircle-icon 
+                    {% if 'python' in course.title | lower %}squircle-python
+                    {% elif 'react' in course.title | lower %}squircle-react
+                    {% elif 'javascript' in course.title | lower or 'node' in course.title | lower %}squircle-js
+                    {% elif 'sql' in course.title | lower or 'database' in course.title | lower %}squircle-sql
+                    {% elif 'machine' in course.title | lower or 'ai' in course.title | lower %}squircle-ai
+                    {% else %}squircle-web{% endif %}">
+                    {% if 'python' in course.title | lower %}<i class="fa-brands fa-python"></i>
+                    {% elif 'react' in course.title | lower %}<i class="fa-brands fa-react"></i>
+                    {% elif 'javascript' in course.title | lower or 'node' in course.title | lower %}<span>JS</span>
+                    {% elif 'sql' in course.title | lower or 'database' in course.title | lower %}<i class="fa-solid fa-database"></i>
+                    {% elif 'machine' in course.title | lower or 'ai' in course.title | lower %}<i class="fa-solid fa-brain"></i>
+                    {% else %}<i class="fa-solid fa-shield-halved"></i>{% endif %}
+                </div>
+
+                <span class="badge-pill badge-level-{{ course.skill_level | lower }}">
+                    {{ course.skill_level }}
+                </span>
+            </div>
+            
+            <div class="master-course-body">
+                <h3 class="master-course-title">
+                    <a href="{{ url_for('course_detail', course_id=course.id) }}">{{ course.title }}</a>
+                </h3>
+                <p class="master-course-desc">{{ course.description }}</p>
+                
+                <div class="master-course-meta">
+                    <span><i class="fa-regular fa-clock"></i> {{ course.duration }}</span>
+                    <span class="rating-gold"><i class="fa-solid fa-star"></i> {{ course.rating if course.rating else '4.5' }}</span>
+                    <span><i class="fa-solid fa-users"></i> {{ course.enrolled_count if course.enrolled_count else '8.6' }}K</span>
+                </div>
+
+                <a href="{{ url_for('course_detail', course_id=course.id) }}" class="btn-view-course-pill">
+                    View Course
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p style="grid-column:1/-1; text-align:center; padding: 2rem; color: var(--text-secondary);">No courses are loaded in the database.</p>
+    {% endif %}
+</div>
+
+<!-- Active Script for client-side search & filtering -->
+<script>
+    let currentCategory = 'All';
+
+    function filterByCategory(cat, btn) {
+        currentCategory = cat;
+        document.querySelectorAll('.cat-pill').forEach(b => b.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+        applyCourseFilters();
+    }
+
+    function applyCourseFilters() {
+        const catalogGrid = document.getElementById("catalog-grid");
+        if (!catalogGrid) return;
+        const cards = Array.from(catalogGrid.querySelectorAll(".master-course-card"));
+        const sortBy = document.getElementById("sort-courses") ? document.getElementById("sort-courses").value : 'students';
+
+        let visibleCards = [];
+        cards.forEach(card => {
+            const category = card.getAttribute("data-category") || '';
+            const title = (card.getAttribute("data-title") || '').toLowerCase();
+            const desc = (card.getAttribute("data-description") || '').toLowerCase();
+
+            let matchesCat = (currentCategory === 'All') || category.toLowerCase().includes(currentCategory.toLowerCase()) || title.includes(currentCategory.toLowerCase());
+            if (matchesCat) {
+                card.style.display = "flex";
+                visibleCards.push(card);
+            } else {
+                card.style.display = "none";
+            }
+        });
+
+        if (sortBy === "rating") {
+            visibleCards.sort((a, b) => parseFloat(b.getAttribute("data-rating") || 0) - parseFloat(a.getAttribute("data-rating") || 0));
+        } else if (sortBy === "students") {
+            visibleCards.sort((a, b) => parseInt(b.getAttribute("data-students") || 0) - parseInt(a.getAttribute("data-students") || 0));
+        }
+        visibleCards.forEach(card => catalogGrid.appendChild(card));
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const sortSelect = document.getElementById("sort-courses");
+        if (sortSelect) {
+            sortSelect.addEventListener("change", applyCourseFilters);
+        }
+    });
+</script>
+{% endblock %}

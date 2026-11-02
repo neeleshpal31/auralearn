@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% block title %}Onboarding - AuraLearn{% endblock %}
+
+{% block content %}
+<div class="onboarding-container">
+    <div class="onboarding-card">
+        <div class="step-header">
+            <div class="onboarding-step-indicators">
+                <span class="step-dot active" id="dot-1"></span>
+                <span class="step-dot" id="dot-2"></span>
+                <span class="step-dot" id="dot-3"></span>
+            </div>
+            <h2 id="step-title">Select Your Experience</h2>
+            <p style="color: var(--text-secondary); font-size: 0.95rem; margin-top: 0.5rem;" id="step-desc">Help us gauge your technical background to tailor course recommendations.</p>
+        </div>
+
+        <form action="{{ url_for('onboarding') }}" method="POST" id="onboarding-form">
+            <!-- Step 1: Skill Level -->
+            <div class="onboarding-step" id="step-1-content">
+                <div class="selection-grid">
+                    <label class="select-card selected" onclick="selectSkill(this)">
+                        <input type="radio" name="skill_level" value="Beginner" checked>
+                        <i class="fa-solid fa-seedling select-card-icon"></i>
+                        <div>
+                            <div style="font-weight:600; margin-bottom: 0.25rem;">Beginner</div>
+                            <div style="font-size:0.8rem; color: var(--text-secondary);">New to tech, looking for foundational code/concepts.</div>
+                        </div>
+                    </label>
+                    
+                    <label class="select-card" onclick="selectSkill(this)">
+                        <input type="radio" name="skill_level" value="Intermediate">
+                        <i class="fa-solid fa-graduation-cap select-card-icon"></i>
+                        <div>
+                            <div style="font-weight:600; margin-bottom: 0.25rem;">Intermediate</div>
+                            <div style="font-size:0.8rem; color: var(--text-secondary);">Have basic knowledge, want to build projects and scale.</div>
+                        </div>
+                    </label>
+                    
+                    <label class="select-card" onclick="selectSkill(this)" style="grid-column: 1 / -1;">
+                        <input type="radio" name="skill_level" value="Advanced">
+                        <i class="fa-solid fa-bolt select-card-icon" style="color: var(--text-warning);"></i>
+                        <div>
+                            <div style="font-weight:600; margin-bottom: 0.25rem;">Advanced</div>
+                            <div style="font-size:0.8rem; color: var(--text-secondary);">Experienced programmer, pursuing deep neural nets & scaling databases.</div>
+                        </div>
+                    </label>
+                </div>
+                <button type="button" class="btn-primary" onclick="goToStep(2)">Continue <i class="fa-solid fa-arrow-right"></i></button>
+            </div>
+
+            <!-- Step 2: Goals -->
+            <div class="onboarding-step" id="step-2-content" style="display: none;">
+                <div class="form-group" style="margin-bottom: 2rem;">
+                    <label class="form-label" for="goals-input">What is your primary learning goal?</label>
+                    <textarea class="form-control" id="goals-input" name="learning_goals" rows="4" placeholder="e.g. Master React to land a front-end job, or learn Python to build machine learning recommendation systems..." required></textarea>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button type="button" class="theme-toggle-btn" style="flex: 1; padding: 0.85rem;" onclick="goToStep(1)"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                    <button type="button" class="btn-primary" style="flex: 2;" onclick="goToStep(3)">Continue <i class="fa-solid fa-arrow-right"></i></button>
+                </div>
+            </div>
+
+            <!-- Step 3: Interests -->
+            <div class="onboarding-step" id="step-3-content" style="display: none;">
+                <label class="form-label" style="margin-bottom: 1rem;">Select tags that interest you (Select at least 3):</label>
+                
+                <div class="interest-tag-grid">
+                    {% for tag in ['Python', 'JavaScript', 'HTML', 'CSS', 'React', 'SQL', 'Flask', 'API', 'Machine Learning', 'Deep Learning', 'Pandas', 'UX', 'UI', 'Figma', 'Design System', 'Agile', 'Product Management', 'Startup', 'Finance', 'Excel'] %}
+                    <label>
+                        <input class="tag-checkbox" type="checkbox" name="interests" value="{{ tag }}" onchange="checkInterestsCount()">
+                        <span class="tag-label">{{ tag }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+
+                <div style="display: flex; gap: 1rem;">
+                    <button type="button" class="theme-toggle-btn" style="flex: 1; padding: 0.85rem;" onclick="goToStep(2)"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                    <button type="submit" class="btn-primary" style="flex: 2;" id="submit-btn" disabled>Complete Onboarding <i class="fa-solid fa-check"></i></button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    let currentStep = 1;
+
+    function selectSkill(card) {
+        // Remove class from all siblings
+        document.querySelectorAll('.select-card').forEach(el => el.classList.remove('selected'));
+        // Add to selected
+        card.classList.add('selected');
+        const input = card.querySelector('input[type="radio"]');
+        input.checked = true;
+    }
+
+    function goToStep(step) {
+        // Validate
+        if (step === 2 && currentStep === 1) {
+            // No strict validation for level
+        }
+        if (step === 3 && currentStep === 2) {
+            const goalVal = document.getElementById('goals-input').value.strip ? document.getElementById('goals-input').value.strip() : document.getElementById('goals-input').value;
+            if (!goalVal) {
+                alert("Please share your learning goal before proceeding!");
+                return;
+            }
+        }
+
+        // Hide current step content
+        document.getElementById(`step-${currentStep}-content`).style.display = 'none';
+        document.getElementById(`dot-${currentStep}`).classList.remove('active');
+
+        // Update headers
+        currentStep = step;
+        document.getElementById(`step-${currentStep}-content`).style.display = 'block';
+        document.getElementById(`dot-${currentStep}`).classList.add('active');
+
+        const title = document.getElementById('step-title');
+        const desc = document.getElementById('step-desc');
+
+        if (step === 1) {
+            title.textContent = "Select Your Experience";
+            desc.textContent = "Help us gauge your technical background to tailor course recommendations.";
+        } else if (step === 2) {
+            title.textContent = "Define Your Goal";
+            desc.textContent = "What is the ultimate target you want to achieve with these courses?";
+        } else if (step === 3) {
+            title.textContent = "Choose Interests";
+            desc.textContent = "Select at least 3 subjects that you are eager to learn.";
+            checkInterestsCount();
+        }
+    }
+
+    function checkInterestsCount() {
+        const checked = document.querySelectorAll('.tag-checkbox:checked').length;
+        const submitBtn = document.getElementById('submit-btn');
+        if (checked >= 3) {
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
+            submitBtn.style.cursor = 'pointer';
+        } else {
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.5';
+            submitBtn.style.cursor = 'not-allowed';
+        }
+    }
+</script>
+{% endblock %}

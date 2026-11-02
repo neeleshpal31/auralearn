@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+
+{% block title %}Code Playground - AuraLearn{% endblock %}
+
+{% block content %}
+<div class="courses-page-header">
+    <div class="courses-page-title-box">
+        <h1 class="page-title"><i class="fa-solid fa-code" style="color: var(--accent-primary);"></i> Online Code Sandbox</h1>
+        <p class="page-subtitle">Write, run, and test your code instantly. Supports Python and JavaScript.</p>
+    </div>
+</div>
+
+<!-- Toolbar Row with Language Pills & Controls -->
+<div class="sandbox-toolbar-row">
+    <div class="sandbox-lang-pills">
+        <button class="lang-pill active" id="lang-pill-python" onclick="switchLanguageMode('python')">Python</button>
+        <button class="lang-pill" id="lang-pill-js" onclick="switchLanguageMode('js')">JavaScript</button>
+    </div>
+
+    <!-- Hidden native template select for main.js compatibility -->
+    <select id="editor-template-select" style="display: none;">
+        <option value="python_basics" selected>Python</option>
+        <option value="javascript_dom">JavaScript</option>
+    </select>
+
+    <div class="sandbox-right-controls">
+        <div style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: var(--text-secondary);">
+            <span>Theme</span>
+            <select class="sandbox-theme-select" id="editor-theme-picker" onchange="toggleEditorTheme(this.value)">
+                <option value="dark" selected>Dark</option>
+                <option value="light">Light</option>
+            </select>
+        </div>
+        <button class="btn-clear-sandbox" onclick="clearPlaygroundCode()">
+            <i class="fa-regular fa-trash-can"></i> Clear
+        </button>
+    </div>
+</div>
+
+<div class="playground-layout">
+    <!-- Left Column: Code Editor & Controls -->
+    <div class="playground-editor-section">
+        <!-- Editor Tab Bar -->
+        <div class="editor-file-tab-bar">
+            <div class="file-tab active" id="file-tab-name">
+                <i class="fa-brands fa-python" id="file-tab-icon" style="color: #38bdf8;"></i> main.py
+            </div>
+            <div class="editor-quick-icons">
+                <button title="Copy Code" onclick="copyEditorCode()"><i class="fa-regular fa-copy"></i></button>
+                <button title="Download File" onclick="downloadEditorCode()"><i class="fa-solid fa-arrow-down-to-line"></i></button>
+            </div>
+        </div>
+
+        <div class="editor-container-wrapper" id="editor-container-theme">
+            <!-- Line numbers decoration -->
+            <div class="editor-line-numbers" id="editor-lines">
+                <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span>
+            </div>
+            <textarea class="playground-textarea" id="editor-textarea" spellcheck="false" autocomplete="off"># Welcome to AuraLearn Code Sandbox
+# Write your Python code here
+
+print("Hello, AuraLearn!")
+for i in range(5):
+    print("Number:", i)</textarea>
+        </div>
+
+        <!-- Action Buttons Bar below editor -->
+        <div class="editor-bottom-actions">
+            <button class="btn-hero-primary" id="run-code-btn" style="padding: 0.6rem 1.4rem; border-radius: 8px;">
+                <i class="fa-solid fa-play"></i> Run Code
+            </button>
+            <button class="btn-secondary" id="reset-code-btn" style="padding: 0.6rem 1.2rem; border-radius: 8px;">
+                <i class="fa-solid fa-bolt"></i> Run Sample
+            </button>
+        </div>
+    </div>
+
+    <!-- Right Column: Output Viewer / Visual Preview Frame -->
+    <div class="playground-output-section">
+        <div class="output-header-tabs">
+            <span class="output-tab active" id="console-tab-btn"><i class="fa-solid fa-terminal"></i> Execution Output</span>
+            <span class="output-tab" id="preview-tab-btn" style="display: none;"><i class="fa-regular fa-eye"></i> Visual Preview</span>
+        </div>
+        
+        <!-- Console Terminal View (Default) -->
+        <div class="terminal-body" id="playground-terminal">
+            <div class="terminal-line system">Hello, AuraLearn!</div>
+            <div class="terminal-line">Number: 0</div>
+            <div class="terminal-line">Number: 1</div>
+            <div class="terminal-line">Number: 2</div>
+            <div class="terminal-line">Number: 3</div>
+            <div class="terminal-line">Number: 4</div>
+        </div>
+        
+        <!-- Iframe preview (For HTML/CSS/JS) -->
+        <div class="preview-iframe-wrapper" id="playground-preview-wrapper" style="display: none;">
+            <iframe class="preview-iframe" id="playground-preview-frame"></iframe>
+        </div>
+    </div>
+</div>
+
+<script>
+    function switchLanguageMode(lang) {
+        const pyBtn = document.getElementById('lang-pill-python');
+        const jsBtn = document.getElementById('lang-pill-js');
+        const tabName = document.getElementById('file-tab-name');
+        const textarea = document.getElementById('editor-textarea');
+        const select = document.getElementById('editor-template-select');
+        const terminal = document.getElementById('playground-terminal');
+
+        if (lang === 'python') {
+            pyBtn.classList.add('active');
+            jsBtn.classList.remove('active');
+            tabName.innerHTML = '<i class="fa-brands fa-python" style="color: #38bdf8;"></i> main.py';
+            if (select) select.value = 'python_basics';
+            textarea.value = `# Welcome to AuraLearn Code Sandbox\\n# Write your Python code here\\n\\nprint("Hello, AuraLearn!")\\nfor i in range(5):\\n    print("Number:", i)`;
+            terminal.innerHTML = '<div class="terminal-line system">Hello, AuraLearn!</div><div class="terminal-line">Number: 0</div><div class="terminal-line">Number: 1</div><div class="terminal-line">Number: 2</div><div class="terminal-line">Number: 3</div><div class="terminal-line">Number: 4</div>';
+        } else {
+            jsBtn.classList.add('active');
+            pyBtn.classList.remove('active');
+            tabName.innerHTML = '<i class="fa-brands fa-js" style="color: #facc15;"></i> script.js';
+            if (select) select.value = 'javascript_dom';
+            textarea.value = `// Welcome to AuraLearn Code Sandbox\\n// Write your JavaScript code here\\n\\nconsole.log("Hello, AuraLearn JS!");\\nconst numbers = [0, 1, 2, 3, 4];\\nnumbers.forEach(n => console.log("Number: " + n));`;
+            terminal.innerHTML = '<div class="terminal-line system">Hello, AuraLearn JS!</div><div class="terminal-line">Number: 0</div><div class="terminal-line">Number: 1</div><div class="terminal-line">Number: 2</div><div class="terminal-line">Number: 3</div><div class="terminal-line">Number: 4</div>';
+        }
+    }
+
+    function clearPlaygroundCode() {
+        const textarea = document.getElementById('editor-textarea');
+        const terminal = document.getElementById('playground-terminal');
+        if (textarea) textarea.value = '';
+        if (terminal) terminal.innerHTML = '<div class="terminal-line system">&gt; Console cleared...</div>';
+    }
+
+    function copyEditorCode() {
+        const textarea = document.getElementById('editor-textarea');
+        if (textarea) {
+            navigator.clipboard.writeText(textarea.value);
+            alert('Code copied to clipboard!');
+        }
+    }
+
+    function downloadEditorCode() {
+        const textarea = document.getElementById('editor-textarea');
+        const isPython = document.getElementById('lang-pill-python').classList.contains('active');
+        const filename = isPython ? 'main.py' : 'script.js';
+        const blob = new Blob([textarea.value], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        a.click();
+    }
+
+    function toggleEditorTheme(theme) {
+        const container = document.getElementById('editor-container-theme');
+        if (container) {
+            if (theme === 'light') {
+                container.style.background = '#ffffff';
+                container.querySelector('textarea').style.color = '#0f172a';
+            } else {
+                container.style.background = '#0d1117';
+                container.querySelector('textarea').style.color = '#58a6ff';
+            }
+        }
+    }
+</script>
+{% endblock %}

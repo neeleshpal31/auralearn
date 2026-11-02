@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AuraLearn - Personalized AI E-Learning Platform{% endblock %}</title>
+    <script>
+        (function() {
+            var saved = localStorage.getItem("theme") || "light";
+            document.documentElement.setAttribute("data-theme", saved);
+        })();
+    </script>
+    <!-- FontAwesome for Premium Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Our Custom Premium Design System -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        {% if session.get('user_id') and user_onboarded %}
+        <aside class="sidebar">
+            <div class="logo-container">
+                <i class="fa-solid fa-graduation-cap logo-icon"></i>
+                <span class="logo-text">AuraLearn</span>
+            </div>
+            
+            <nav class="nav-links">
+                <li class="nav-item {% if active_page == 'dashboard' %}active{% endif %}">
+                    <a href="{{ url_for('dashboard') }}">
+                        <i class="fa-solid fa-house"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item {% if active_page == 'courses' %}active{% endif %}">
+                    <a href="{{ url_for('courses') }}">
+                        <i class="fa-solid fa-book-open"></i>
+                        <span>All Courses</span>
+                    </a>
+                </li>
+                <li class="nav-item {% if active_page == 'leaderboard' %}active{% endif %}">
+                    <a href="{{ url_for('leaderboard') }}">
+                        <i class="fa-solid fa-trophy"></i>
+                        <span>Leaderboard</span>
+                    </a>
+                </li>
+                <li class="nav-item {% if active_page == 'quiz_battle' %}active{% endif %}">
+                    <a href="{{ url_for('quiz_battle') }}">
+                        <i class="fa-solid fa-bolt"></i>
+                        <span>Quiz Battle</span>
+                    </a>
+                </li>
+                <li class="nav-item {% if active_page == 'playground' %}active{% endif %}">
+                    <a href="{{ url_for('playground') }}">
+                        <i class="fa-solid fa-code"></i>
+                        <span>Code Sandbox</span>
+                    </a>
+                </li>
+                <li class="nav-item {% if active_page == 'profile' %}active{% endif %}">
+                    <a href="{{ url_for('profile') }}">
+                        <i class="fa-regular fa-user"></i>
+                        <span>Profile</span>
+                    </a>
+                </li>
+            </nav>
+            
+            <!-- Upgrade to Premium Promo Card (as shown in all 6 design boards) -->
+            <div class="sidebar-upgrade-card">
+                <div class="upgrade-icon-wrap">
+                    <i class="fa-solid fa-crown"></i>
+                </div>
+                <div class="upgrade-title">Upgrade to Premium</div>
+                <p class="upgrade-desc">Unlock advanced courses and AI features.</p>
+                <button class="btn-upgrade-now" onclick="alert('🌟 AuraLearn Premium: Unlock AI Tutor, Unlimited Quiz Battles & Verified Certificates!')">Upgrade Now</button>
+            </div>
+            
+            <div class="sidebar-footer">
+                <div class="user-profile-badge">
+                    <div class="avatar">
+                        {{ session.get('full_name', 'U')[0] }}
+                    </div>
+                    <div class="user-info">
+                        <span class="user-name">{{ session.get('full_name', 'Student') }}</span>
+                        <span class="user-tag">@{{ session.get('username', 'user') }} &nbsp; Lv {{ global_user_level }}</span>
+                    </div>
+                </div>
+                
+                <div class="theme-toggle-row">
+                    <div class="theme-toggle-label">
+                        <i class="fa-solid fa-moon"></i>
+                        <span>Dark Mode</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="theme-switch-checkbox">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                
+                <div class="signout-link">
+                    <a href="{{ url_for('logout') }}">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                        <span>Sign Out</span>
+                    </a>
+                </div>
+            </div>
+        </aside>
+        {% endif %}
+        
+        <!-- Main Panel Content -->
+        <main class="main-content" style="{% if not session.get('user_id') or not user_onboarded %}margin-left: 0; width: 100%;{% endif %}">
+            
+            {% if session.get('user_id') and user_onboarded %}
+            <!-- Modern Top Navigation Bar with Search and Quick Actions -->
+            <div class="topbar">
+                <div class="topbar-search">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="global-search-input" placeholder="Search for courses, topics, or anything..." onkeydown="if(event.key==='Enter'){ window.location.href='/courses?q=' + encodeURIComponent(this.value); }">
+                </div>
+                
+                <div class="topbar-actions">
+                    <button class="topbar-icon-btn" id="theme-toggle-top" title="Toggle Theme">
+                        <i class="fa-regular fa-sun" id="theme-icon-top"></i>
+                    </button>
+                    
+                    <div class="notification-dropdown-wrapper" style="position: relative;">
+                        <button id="notif-btn" class="topbar-icon-btn" onclick="toggleNotifications()" title="Notifications">
+                            <i class="fa-regular fa-bell"></i>
+                            {% if global_unread_notifications_count > 0 %}
+                            <span id="notif-badge" class="topbar-badge">{{ global_unread_notifications_count }}</span>
+                            {% else %}
+                            <span id="notif-badge" class="topbar-badge">10</span>
+                            {% endif %}
+                        </button>
+                        
+                        <!-- Notification Popup Menu -->
+                        <div id="notif-menu" class="notif-dropdown-menu" style="display: none;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.6rem; border-bottom: 1px solid var(--border-color); margin-bottom: 0.5rem;">
+                                <span style="font-size: 0.88rem; font-weight: 700; color: var(--text-primary);"><i class="fa-solid fa-bell" style="color: var(--accent-primary); margin-right: 0.35rem;"></i> Notifications</span>
+                                <button onclick="markNotificationsRead()" style="background: none; border: none; font-size: 0.75rem; color: var(--accent-primary); cursor: pointer; font-weight: 600;">Mark all read</button>
+                            </div>
+                            <div id="notif-list" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 260px; overflow-y: auto;">
+                                {% if global_recent_notifications %}
+                                    {% for n in global_recent_notifications %}
+                                    <div style="padding: 0.5rem 0.65rem; border-radius: 8px; background: {% if not n.is_read %}var(--accent-light){% else %}transparent{% endif %}; border: 1px solid {% if not n.is_read %}var(--accent-blue-border){% else %}transparent{% endif %};">
+                                        <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
+                                            <i class="fa-solid {{ n.icon }}" style="color: var(--accent-primary); margin-top: 0.2rem; font-size: 0.9rem;"></i>
+                                            <div>
+                                                <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-primary);">{{ n.title }}</div>
+                                                <div style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.35;">{{ n.message }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div style="padding: 0.5rem 0.65rem; border-radius: 8px; background: var(--accent-light); border: 1px solid var(--accent-blue-border);">
+                                        <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
+                                            <i class="fa-solid fa-trophy" style="color: var(--accent-primary); margin-top: 0.2rem; font-size: 0.9rem;"></i>
+                                            <div>
+                                                <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-primary);">Welcome to AuraLearn!</div>
+                                                <div style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.35;">Your personalized learning path and daily goals are ready.</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <a href="{{ url_for('profile') }}" class="topbar-avatar" title="View Profile">
+                        {{ session.get('full_name', 'U')[0] }}
+                    </a>
+                </div>
+            </div>
+            
+            <script>
+                function toggleNotifications() {
+                    const menu = document.getElementById('notif-menu');
+                    if (menu.style.display === 'none' || !menu.style.display) {
+                        menu.style.display = 'block';
+                    } else {
+                        menu.style.display = 'none';
+                    }
+                }
+                function markNotificationsRead() {
+                    fetch('/api/notifications/mark-read', { method: 'POST' })
+                        .then(r => r.json())
+                        .then(() => {
+                            const badge = document.getElementById('notif-badge');
+                            if (badge) badge.style.display = 'none';
+                        });
+                }
+                document.addEventListener('click', function(e) {
+                    const wrapper = document.querySelector('.notification-dropdown-wrapper');
+                    const menu = document.getElementById('notif-menu');
+                    if (wrapper && menu && !wrapper.contains(e.target)) {
+                        menu.style.display = 'none';
+                    }
+                });
+            </script>
+            {% endif %}
+
+            <!-- Alert Notifications Banner -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}">
+                            <i class="fa-solid {{ 'fa-circle-check' if category == 'success' else 'fa-triangle-exclamation' }}"></i>
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    
+    <!-- Script handling dynamic interactivity -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

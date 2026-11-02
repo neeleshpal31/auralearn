@@ -1,0 +1,1324 @@
+{% extends "base.html" %}
+
+{% block title %}{% if is_demo %}Demo Practice Exam - {{ course.title }} | AuraLearn{% else %}Secure Proctored Final Exam - {{ course.title }} | AuraLearn{% endif %}{% endblock %}
+
+{% block content %}
+<div class="exam-proctor-wrapper" id="exam-proctor-root">
+    
+    <!-- TOP SECURE PROCTOR HUD BAR -->
+    <header class="exam-hud-bar">
+        <div class="hud-left">
+            <a href="{{ url_for('course_detail', course_id=course.id) }}" class="hud-exit-link" id="hud-exit-btn" onclick="return confirmExitExam(event);">
+                <i class="fa-solid fa-arrow-left"></i> Exit Exam
+            </a>
+            <div class="hud-course-info">
+                <span class="hud-course-badge"><i class="fa-solid fa-graduation-cap"></i> {{ course.category }}</span>
+                <h1 class="hud-course-title">
+                    {{ course.title }} - {% if is_demo %}<span style="color: #fbbf24;">Demo / Practice Exam</span>{% else %}Final Certification Exam{% endif %}
+                </h1>
+            </div>
+        </div>
+
+        <div class="hud-center">
+            <!-- Live AI Proctor Indicator -->
+            <div class="hud-proctor-status">
+                <span class="proctor-dot" style="{% if is_demo %}background: #fbbf24; box-shadow: 0 0 10px #fbbf24;{% endif %}"></span>
+                <span class="proctor-text" style="{% if is_demo %}color: #fbbf24;{% endif %}">
+                    {% if is_demo %}
+                    <i class="fa-solid fa-flask"></i> DEMO / PRACTICE MODE
+                    {% else %}
+                    <i class="fa-solid fa-shield-halved"></i> SECURE MODE ACTIVE
+                    {% endif %}
+                </span>
+            </div>
+            <!-- Live Violation Counter -->
+            <div class="hud-violations-badge" id="hud-violations-box">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <span>Violations: <strong id="violations-count-display">0</strong> / 3</span>
+            </div>
+        </div>
+
+        <div class="hud-right">
+            <!-- Countdown Timer -->
+            <div class="hud-timer-container" id="hud-timer-box">
+                <i class="fa-regular fa-clock"></i>
+                <span id="exam-timer-display">{{ "%02d:00" | format(exam.time_limit_minutes) }}</span>
+            </div>
+            <!-- Quick Submit CTA -->
+            <button type="button" class="btn-primary hud-submit-btn" onclick="confirmAndSubmitExam()">
+                Submit Exam <i class="fa-solid fa-paper-plane"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- PRE-EXAM SECURITY LOCKDOWN LAUNCHER MODAL (Displayed until user enters Fullscreen) -->
+    <div class="exam-launcher-overlay" id="exam-launcher-modal">
+        <div class="launcher-card">
+            <div class="launcher-shield-icon" style="{% if is_demo %}background: rgba(251, 191, 36, 0.15); border-color: #fbbf24; color: #fbbf24;{% endif %}">
+                {% if is_demo %}<i class="fa-solid fa-flask"></i>{% else %}<i class="fa-solid fa-shield-halved"></i>{% endif %}
+            </div>
+            <h2 class="launcher-title">
+                {% if is_demo %}Interactive Demo / Practice Exam{% else %}Proctored Final Certification Exam{% endif %}
+            </h2>
+            <p class="launcher-subtitle">
+                Course: <strong>{{ course.title }}</strong> 
+                {% if is_demo %}• <span style="color: #fbbf24; font-weight:700;">Open Anytime for Trial & Practice</span>{% endif %}
+            </p>
+
+            <div class="launcher-specs-grid">
+                <div class="spec-card">
+                    <i class="fa-solid fa-list-check"></i>
+                    <div class="spec-num">{{ exam.total_questions }}</div>
+                    <div class="spec-label">Questions</div>
+                </div>
+                <div class="spec-card">
+                    <i class="fa-solid fa-stopwatch"></i>
+                    <div class="spec-num">{{ exam.time_limit_minutes }} min</div>
+                    <div class="spec-label">Time Limit</div>
+                </div>
+                <div class="spec-card">
+                    <i class="fa-solid fa-award"></i>
+                    <div class="spec-num">{{ exam.passing_percentage }}%</div>
+                    <div class="spec-label">Passing Score</div>
+                </div>
+                <div class="spec-card">
+                    {% if is_demo %}
+                    <i class="fa-solid fa-bolt" style="color: #fbbf24;"></i>
+                    <div class="spec-num">+25 XP</div>
+                    <div class="spec-label">Practice Reward</div>
+                    {% else %}
+                    <i class="fa-solid fa-certificate" style="color: var(--accent-cyan);"></i>
+                    <div class="spec-num">+100 XP</div>
+                    <div class="spec-label">Verified Cert</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="launcher-rules-box" style="border: 1px solid rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.05);">
+                <h3 class="rules-heading" style="color: #ef4444;"><i class="fa-solid fa-triangle-exclamation"></i> Strict Anti-Cheat & AI Proctoring Policy:</h3>
+                <ul class="rules-list">
+                    <li><i class="fa-solid fa-mobile-screen-button" style="color: #ef4444;"></i> <strong style="color: #fff;">Zero Tolerance Mobile & Device Ban:</strong> Holding or using a <strong>Mobile Phone, smart device, earphones, notes, or suspicious object in hand</strong> will be instantly detected by AI vision and will <strong>CANCEL YOUR EXAM IMMEDIATELY WITH 0 MARKS</strong>.</li>
+                    <li><i class="fa-solid fa-users-slash" style="color: #ef4444;"></i> <strong style="color: #fff;">Zero Tolerance Multi-Person Detection:</strong> If another person enters the room or camera frame, your exam will <strong>INSTANTLY CANCEL and auto-submit with 0 MARKS</strong>.</li>
+                    <li><i class="fa-solid fa-video" style="color: var(--accent-cyan);"></i> <strong style="color: #fff;">AI Face & Movement Tracking:</strong> Looking away from the screen, excessive head movement, or leaving the camera will trigger warning strikes (3 strikes = cancellation).</li>
+                    <li><i class="fa-solid fa-circle-exclamation" style="color: #ef4444;"></i> <strong style="color: #fff;">Zero Tolerance Screen Switch:</strong> Switching tabs, minimizing the window, or losing screen focus will <strong>INSTANTLY auto-submit with 0 MARKS</strong>.</li>
+                    <li><i class="fa-solid fa-circle-check" style="color: var(--accent-emerald);"></i> <strong>Fullscreen Mandatory:</strong> The exam will lock into fullscreen mode until submission.</li>
+                    <li><i class="fa-solid fa-circle-check" style="color: var(--accent-emerald);"></i> <strong>Clipboard & Keys Blocked:</strong> Right-click, Copy, Paste, and DevTools shortcuts are disabled.</li>
+                </ul>
+            </div>
+
+            <button type="button" class="btn-primary launcher-start-btn" id="start-exam-btn" onclick="startSecureExam()">
+                <i class="fa-solid fa-video"></i> Grant Camera & Start {% if is_demo %}Demo Exam{% else %}Final Exam{% endif %}
+            </button>
+        </div>
+    </div>
+
+
+
+    <!-- MAIN EXAM STAGE -->
+    <main class="exam-stage-container" id="exam-main-stage" style="display: none;">
+        
+        <!-- Left / Question Card Column -->
+        <div class="exam-question-column">
+            
+            <!-- Question Deck Card -->
+            <div class="exam-card" id="question-card-container">
+                <div class="exam-card-header">
+                    <div class="q-header-meta">
+                        <span class="q-number-badge" id="current-q-index-pill">Question 1 of {{ exam.total_questions }}</span>
+                        <span class="q-points-badge"><i class="fa-solid fa-star"></i> 10 Points</span>
+                    </div>
+                    <button type="button" class="q-flag-btn" id="flag-btn" onclick="toggleFlagCurrentQuestion()">
+                        <i class="fa-regular fa-bookmark"></i> <span id="flag-text">Flag for Review</span>
+                    </button>
+                </div>
+
+                <div class="q-content-box">
+                    <h2 class="q-title-text" id="question-text-content">Loading Question...</h2>
+                </div>
+
+                <!-- Options List -->
+                <div class="q-options-list" id="question-options-container">
+                    <!-- Injected dynamically -->
+                </div>
+
+                <!-- Card Bottom Controls -->
+                <div class="exam-card-footer">
+                    <div class="footer-left">
+                        <button type="button" class="btn-secondary q-nav-btn" id="prev-q-btn" onclick="navigateQuestion(-1)">
+                            <i class="fa-solid fa-arrow-left"></i> Previous
+                        </button>
+                        <button type="button" class="btn-secondary q-clear-btn" onclick="clearCurrentAnswer()">
+                            <i class="fa-solid fa-rotate-left"></i> Clear Choice
+                        </button>
+                    </div>
+
+                    <div class="footer-right">
+                        <button type="button" class="btn-primary q-nav-btn" id="next-q-btn" onclick="navigateQuestion(1)">
+                            Next Question <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Proctor Live Status HUD Banner -->
+            <div class="exam-proctor-hud-footer">
+                <div class="proctor-hud-indicator">
+                    <i class="fa-solid fa-eye" style="color: var(--accent-emerald);"></i>
+                    <span>Proctor AI Monitoring: Live Screen Lock & Vision Verification Active</span>
+                </div>
+                <div class="proctor-hud-stats">
+                    <span>Progress: <strong id="progress-count-text">0/{{ exam.total_questions }} answered</strong></span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right / Question Navigator & AI Camera Column -->
+        <aside class="exam-sidebar-column">
+            
+            <!-- AI PROCTOR LIVE CAMERA HUD CARD -->
+            <div class="ai-proctor-cam-card" id="ai-cam-card">
+                <div class="ai-cam-header">
+                    <div class="ai-cam-title">
+                        <i class="fa-solid fa-video" style="color: var(--accent-cyan);"></i> AI Proctor Feed
+                    </div>
+                    <div class="ai-cam-live-badge" id="ai-live-badge">
+                        <i class="fa-solid fa-circle" style="font-size: 0.55rem;"></i> LIVE REC
+                    </div>
+                </div>
+
+                <div class="ai-cam-feed-container">
+                    <video id="proctor-video" autoplay playsinline muted></video>
+                    <canvas id="proctor-canvas"></canvas>
+                    <div class="ai-cam-scan-line"></div>
+                    <div class="ai-face-reticle" id="ai-face-reticle"></div>
+                    <div class="ai-cam-status-pill" id="ai-cam-status-pill">
+                        <span id="ai-status-text"><i class="fa-solid fa-shield-halved"></i> AI Initializing...</span>
+                        <span id="ai-confidence-text" style="color: var(--accent-cyan); font-size: 0.68rem;">100%</span>
+                    </div>
+                </div>
+
+                <div class="ai-cam-footer">
+                    <div class="ai-cam-metric">
+                        Status: <strong id="ai-posture-label" style="color: var(--accent-emerald);">Aligned & Focused</strong>
+                    </div>
+                    <div class="ai-strikes-pill" id="ai-strikes-pill">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <span id="ai-strikes-text">0 / 3 Strikes</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question Matrix Palette -->
+            <div class="palette-card">
+                <h3 class="palette-title"><i class="fa-solid fa-table-cells-large"></i> Question Navigator</h3>
+                
+                <div class="palette-grid" id="question-palette-grid">
+                    {% for q in exam.questions %}
+                    <button type="button" class="palette-btn {% if loop.first %}active{% endif %}" id="palette-btn-{{ loop.index0 }}" onclick="jumpToQuestion({{ loop.index0 }})">
+                        {{ loop.index }}
+                    </button>
+                    {% endfor %}
+                </div>
+
+                <div class="palette-legend">
+                    <div class="legend-item">
+                        <span class="legend-color answered"></span>
+                        <span>Answered</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color flagged"></span>
+                        <span>Flagged</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color unanswered"></span>
+                        <span>Unanswered</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color current"></span>
+                        <span>Current</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Exam Info Card -->
+            <div class="palette-card" style="margin-top: 1rem;">
+                <h3 class="palette-title"><i class="fa-solid fa-info-circle"></i> Exam Summary</h3>
+                <div class="summary-stat-row">
+                    <span>Total Questions:</span>
+                    <strong>{{ exam.total_questions }}</strong>
+                </div>
+                <div class="summary-stat-row">
+                    <span>Answered:</span>
+                    <strong id="summary-answered-count" style="color: var(--accent-emerald);">0</strong>
+                </div>
+                <div class="summary-stat-row">
+                    <span>Flagged for Review:</span>
+                    <strong id="summary-flagged-count" style="color: var(--text-warning);">0</strong>
+                </div>
+                <div class="summary-stat-row">
+                    <span>Passing Criteria:</span>
+                    <strong>>= 70%</strong>
+                </div>
+
+                <button type="button" class="btn-primary submit-final-cta" onclick="confirmAndSubmitExam()">
+                    <i class="fa-solid fa-circle-check"></i> Submit Exam
+                </button>
+            </div>
+
+        </aside>
+
+    </main>
+
+    <!-- SECURITY VIOLATION FLASH OVERLAY -->
+    <div class="security-warning-overlay" id="security-warning-modal" style="display: none;">
+        <div class="security-warning-box">
+            <div class="warning-icon-pulse">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h2 class="warning-heading">SECURITY VIOLATION DETECTED!</h2>
+            <p class="warning-desc" id="warning-reason-text">Tab-switching, minimizing, or exiting fullscreen is strictly prohibited during the proctored exam.</p>
+            
+            <div class="warning-count-banner">
+                Warning <strong id="warning-count-modal-num">1</strong> of 3
+            </div>
+            
+            <p class="warning-subnote">Exceeding 3 violations will automatically trigger immediate exam forfeiture.</p>
+            
+            <button type="button" class="btn-primary resume-exam-btn" onclick="resumeExamFromWarning()">
+                <i class="fa-solid fa-expand"></i> Re-enter Fullscreen & Continue
+            </button>
+        </div>
+    </div>
+
+    <!-- POST-EXAM RESULTS MODAL -->
+    <div class="exam-result-overlay" id="exam-result-modal" style="display: none;">
+        <div class="exam-result-card" id="result-card-inner">
+            <div class="result-badge-icon" id="result-icon-box">
+                <i class="fa-solid fa-award"></i>
+            </div>
+
+            <h2 class="result-title" id="result-title-text">Evaluation Complete!</h2>
+            <p class="result-subtitle" id="result-subtitle-text">Your Final Exam has been evaluated.</p>
+
+            <div class="result-score-ring-container">
+                <div class="score-percentage-number" id="result-percentage-text">85%</div>
+                <div class="score-grade-pill" id="result-grade-pill">Grade: A (Excellence)</div>
+            </div>
+
+            <div class="result-stats-row">
+                <div class="result-stat-pill">
+                    <span class="label">Correct Answers</span>
+                    <strong class="val" id="result-correct-val">8 / 10</strong>
+                </div>
+                <div class="result-stat-pill">
+                    <span class="label">Security Violations</span>
+                    <strong class="val" id="result-violations-val">0</strong>
+                </div>
+                <div class="result-stat-pill">
+                    <span class="label">Certification</span>
+                    <strong class="val" id="result-status-val" style="color: var(--accent-emerald);">PASSED</strong>
+                </div>
+            </div>
+
+            <!-- Action buttons depending on pass/fail -->
+            <div class="result-actions-zone" id="result-passed-actions">
+                {% if is_demo %}
+                <button type="button" class="btn-primary" onclick="window.location.reload();" style="width: 100%; margin-bottom: 0.75rem; background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%); color: #000; font-weight: 800;">
+                    <i class="fa-solid fa-rotate-right"></i> Try Demo Exam Again
+                </button>
+                <a href="{{ url_for('course_detail', course_id=course.id) }}" class="btn-secondary return-course-btn">
+                    <i class="fa-solid fa-book-open"></i> Continue Course Lessons
+                </a>
+                {% else %}
+                <a href="#" id="view-certificate-btn" class="btn-primary cert-view-action-btn">
+                    <i class="fa-solid fa-certificate"></i> View & Print Verified Certificate
+                </a>
+                <a href="{{ url_for('course_detail', course_id=course.id) }}" class="btn-secondary return-course-btn">
+                    <i class="fa-solid fa-arrow-left"></i> Return to Course
+                </a>
+                {% endif %}
+            </div>
+
+            <div class="result-actions-zone" id="result-failed-actions" style="display: none;">
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">
+                    {% if is_demo %}
+                    You scored below 70%. Don't worry, this is a practice demo! Review the detailed solutions below and retry anytime.
+                    {% else %}
+                    You need at least 70% to earn the certificate. Review course lessons and retake the exam when ready.
+                    {% endif %}
+                </p>
+                <button type="button" class="btn-primary" onclick="window.location.reload();" style="width: 100%; margin-bottom: 0.75rem;">
+                    <i class="fa-solid fa-rotate-right"></i> Retake {% if is_demo %}Demo {% endif %}Exam
+                </button>
+                <a href="{{ url_for('course_detail', course_id=course.id) }}" class="btn-secondary return-course-btn">
+                    <i class="fa-solid fa-book-open"></i> Review Syllabus
+                </a>
+            </div>
+
+            <!-- Detailed Question Feedback Accordion -->
+            <div class="exam-review-section" id="exam-review-section">
+                <button type="button" class="review-accordion-toggle" onclick="toggleReviewDetails()">
+                    <span><i class="fa-solid fa-magnifying-glass"></i> Review Questions & Explanations</span>
+                    <i class="fa-solid fa-chevron-down" id="review-chevron"></i>
+                </button>
+                <div class="review-details-list" id="review-details-container" style="display: none;">
+                    <!-- Injected dynamically -->
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<!-- TENSORFLOW, BLAZEFACE & COCO-SSD OBJECT/MOBILE PHONE DETECTION CDN LIBRARIES -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.7/dist/blazeface.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+
+<!-- PASS EXAM DATA TO JAVASCRIPT -->
+<script>
+    const EXAM_DATA = {{ exam | tojson }};
+    const COURSE_ID = {{ course.id }};
+    const IS_DEMO = {% if is_demo %}true{% else %}false{% endif %};
+    const TOTAL_QUESTIONS = EXAM_DATA.questions.length;
+    const TIME_LIMIT_SECONDS = (EXAM_DATA.time_limit_minutes || 15) * 60;
+
+    // Exam State
+    let currentQuestionIndex = 0;
+    let userAnswers = {}; // { 0: optionIndex, 1: optionIndex }
+    let flaggedQuestions = new Set();
+    let violationsCount = 0;
+    let maxViolations = 3;
+    let timerInterval = null;
+    let timeRemaining = TIME_LIMIT_SECONDS;
+    let examActive = false;
+    let examSubmitted = false;
+
+    // AI Proctoring State & Models
+    let mediaStream = null;
+    let aiDetectionLoop = null;
+    let aiStrikes = 0;
+    const MAX_AI_STRIKES = 3;
+    let consecutiveViolationCount = 0;
+    let multiPersonFrameCount = 0;
+    let phoneDetectionFrameCount = 0;
+    let handObjectFrameCount = 0;
+    let currentViolationType = null;
+    let lastStrikeTimestamp = 0;
+    let audioCtx = null;
+    let blazefaceModel = null;
+    let cocoSsdModel = null;
+    let nativeFaceDetector = ('FaceDetector' in window) ? new FaceDetector({ maxDetectedFaces: 5, fastMode: true }) : null;
+    let isDetectingFrame = false;
+
+    // Initialize BlazeFace Face Model in background
+    if (typeof blazeface !== 'undefined') {
+        blazeface.load().then(model => {
+            blazefaceModel = model;
+            console.log("✅ BlazeFace AI Face model initialized.");
+        }).catch(e => console.warn("BlazeFace load fallback:", e));
+    }
+
+    // Initialize COCO-SSD AI Object & Mobile Phone Detector in background
+    if (typeof cocoSsd !== 'undefined') {
+        cocoSsd.load().then(model => {
+            cocoSsdModel = model;
+            console.log("✅ Mobile Phone & Handheld Object AI Detector initialized.");
+        }).catch(e => {
+            console.warn("COCO-SSD initial load notice, attempting fallback:", e);
+            if (typeof cocoSsd !== 'undefined') {
+                cocoSsd.load({ base: 'mobilenet_v1' }).then(m => {
+                    cocoSsdModel = m;
+                }).catch(err => console.warn("COCO-SSD fallback err:", err));
+            }
+        });
+    }
+
+    // Web Audio Synthesizer for Proctor Warnings
+    function playProctorAlertSound(isUrgent = false) {
+        try {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (isUrgent) {
+                // Urgent high-pitch double beep
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(440, audioCtx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+                osc.start(audioCtx.currentTime);
+                osc.stop(audioCtx.currentTime + 0.35);
+            } else {
+                // Normal warning pulse
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(620, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+                osc.start(audioCtx.currentTime);
+                osc.stop(audioCtx.currentTime + 0.25);
+            }
+        } catch (e) {
+            console.warn("Audio alert error:", e);
+        }
+    }
+
+    // 1. START SECURE EXAM WITH CAMERA PERMISSION & ENTER FULLSCREEN
+    async function startSecureExam() {
+        const startBtn = document.getElementById('start-exam-btn');
+        startBtn.disabled = true;
+        startBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Initializing AI Camera & Sensors...`;
+
+        // 1a. Request Webcam Permission
+        try {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: 'user'
+                    },
+                    audio: false
+                });
+
+                const videoEl = document.getElementById('proctor-video');
+                videoEl.srcObject = mediaStream;
+                await videoEl.play();
+            } else {
+                throw new Error("Webcam access not supported in this browser.");
+            }
+        } catch (camErr) {
+            console.warn("Webcam permission denied or unavailable:", camErr);
+            const allowWithoutCam = confirm("⚠️ Camera Permission Notice:\n\nCamera access is required for AI Proctoring & movement verification. Would you like to retry granting camera permissions, or proceed in Practice Simulation Mode?");
+            if (allowWithoutCam) {
+                // Continue with simulation HUD fallback
+            } else {
+                startBtn.disabled = false;
+                startBtn.innerHTML = `<i class="fa-solid fa-video"></i> Grant Camera & Start Exam`;
+                return;
+            }
+        }
+
+        // 1b. Request Fullscreen
+        const elem = document.documentElement;
+        if (elem.requestFullscreen) {
+            elem.requestFullscreen().catch(err => {
+                console.warn("Fullscreen request notice:", err);
+            });
+        } else if (elem.webkitRequestFullscreen) {
+            elem.webkitRequestFullscreen();
+        } else if (elem.msRequestFullscreen) {
+            elem.msRequestFullscreen();
+        }
+
+        // Ensure COCO-SSD object model is ready
+        if (!cocoSsdModel && typeof cocoSsd !== 'undefined') {
+            try {
+                cocoSsdModel = await cocoSsd.load();
+                console.log("✅ Object & Handheld Device AI Model initialized and active.");
+            } catch (mErr) {
+                console.warn("Model initialization notice:", mErr);
+            }
+        }
+
+        // Hide launcher, show stage
+        document.getElementById('exam-launcher-modal').style.display = 'none';
+        document.getElementById('exam-main-stage').style.display = 'grid';
+
+        examActive = true;
+        
+        // Start Countdown Timer
+        startTimer();
+
+        // Render Initial Question
+        renderQuestion(0);
+
+        // Bind Security Anti-Cheat Event Listeners
+        initAntiCheatSystem();
+
+        // Start Real-Time AI Camera Proctoring Loop
+        initAIVisionProctorLoop();
+    }
+
+    // 2. REAL-TIME AI COMPUTER VISION PROCTORING ENGINE
+    function initAIVisionProctorLoop() {
+        const video = document.getElementById('proctor-video');
+        const canvas = document.getElementById('proctor-canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        
+        const statusPill = document.getElementById('ai-cam-status-pill');
+        const statusText = document.getElementById('ai-status-text');
+        const confidenceText = document.getElementById('ai-confidence-text');
+        const postureLabel = document.getElementById('ai-posture-label');
+        const reticle = document.getElementById('ai-face-reticle');
+        const strikesBadge = document.getElementById('ai-strikes-pill');
+        const strikesText = document.getElementById('ai-strikes-text');
+        const camCard = document.getElementById('ai-cam-card');
+
+        // Sample video frame every 180ms for high performance & accuracy
+        aiDetectionLoop = setInterval(async () => {
+            if (!examActive || examSubmitted || isDetectingFrame) return;
+            isDetectingFrame = true;
+
+            try {
+                const vW = video.videoWidth || 320;
+                const vH = video.videoHeight || 240;
+                if (canvas.width !== vW) canvas.width = vW;
+                if (canvas.height !== vH) canvas.height = vH;
+
+                ctx.clearRect(0, 0, vW, vH);
+
+                let detectedFaceCount = 0;
+                let isLookingAway = false;
+                let isLookingDown = false;
+                let faceBoxes = [];
+
+                // METHOD 1: BlazeFace Neural Network (Deep Learning Face Detection)
+                if (blazefaceModel) {
+                    try {
+                        const predictions = await blazefaceModel.estimateFaces(video, false);
+                        detectedFaceCount = predictions.length;
+
+                        predictions.forEach(p => {
+                            const start = p.topLeft;
+                            const end = p.bottomRight;
+                            faceBoxes.push({
+                                x: start[0],
+                                y: start[1],
+                                width: end[0] - start[0],
+                                height: end[1] - start[1]
+                            });
+                        });
+
+                        if (detectedFaceCount > 0) {
+                            const mainFace = predictions[0];
+                            const cx = (mainFace.topLeft[0] + mainFace.bottomRight[0]) / 2 / vW;
+                            const cy = (mainFace.topLeft[1] + mainFace.bottomRight[1]) / 2 / vH;
+
+                            if (mainFace.landmarks && mainFace.landmarks.length >= 3) {
+                                const rEye = mainFace.landmarks[0];
+                                const lEye = mainFace.landmarks[1];
+                                const nose = mainFace.landmarks[2];
+                                const eyeDist = Math.abs(lEye[0] - rEye[0]);
+                                if (eyeDist > 15) {
+                                    const minEyeX = Math.min(rEye[0], lEye[0]);
+                                    const noseRatio = (nose[0] - minEyeX) / eyeDist;
+                                    if (noseRatio < 0.15 || noseRatio > 0.85) isLookingAway = true;
+                                }
+                            } else {
+                                if (cx < 0.18 || cx > 0.82) isLookingAway = true;
+                                if (cy > 0.82) isLookingDown = true;
+                            }
+                        }
+                    } catch (bfErr) {
+                        console.warn("BlazeFace inference error:", bfErr);
+                    }
+                }
+                // METHOD 2: Native Chromium FaceDetector API
+                else if (nativeFaceDetector) {
+                    try {
+                        const faces = await nativeFaceDetector.detect(video);
+                        detectedFaceCount = faces.length;
+                        faces.forEach(f => {
+                            const b = f.boundingBox;
+                            faceBoxes.push({ x: b.x, y: b.y, width: b.width, height: b.height });
+                        });
+                        if (detectedFaceCount > 0) {
+                            const b = faces[0].boundingBox;
+                            const cx = (b.x + b.width / 2) / vW;
+                            const cy = (b.y + b.height / 2) / vH;
+                            if (cx < 0.18 || cx > 0.82) isLookingAway = true;
+                            if (cy > 0.82) isLookingDown = true;
+                        }
+                    } catch (ndErr) {
+                        console.warn("Native face detector error:", ndErr);
+                    }
+                }
+                // METHOD 3: Unified Single-Hull Skin Tracker (Safe Fallback - Never splits 1 person)
+                else {
+                    ctx.drawImage(video, 0, 0, vW, vH);
+                    const frameData = ctx.getImageData(0, 0, vW, vH);
+                    ctx.clearRect(0, 0, vW, vH);
+
+                    const data = frameData.data;
+                    let skinPixels = 0;
+                    let sumX = 0, sumY = 0;
+                    let minX = vW, maxX = 0, minY = vH, maxY = 0;
+
+                    for (let i = 0; i < data.length; i += 16) {
+                        const r = data[i], g = data[i + 1], b = data[i + 2];
+                        if (r > 65 && g > 42 && b > 25 && r > g && (r - g) > 15 && (r - b) > 15 && r < 245) {
+                            skinPixels++;
+                            const pixelIndex = i / 4;
+                            const px = pixelIndex % vW;
+                            const py = Math.floor(pixelIndex / vW);
+                            sumX += px;
+                            sumY += py;
+                            if (px < minX) minX = px;
+                            if (px > maxX) maxX = px;
+                            if (py < minY) minY = py;
+                            if (py > maxY) maxY = py;
+                        }
+                    }
+
+                    if (skinPixels >= 150) {
+                        detectedFaceCount = 1; // Always 1 person for single hull
+                        faceBoxes.push({ x: minX, y: minY, width: maxX - minX, height: maxY - minY });
+                        const cx = (sumX / skinPixels) / vW;
+                        const cy = (sumY / skinPixels) / vH;
+                        if (cx < 0.18 || cx > 0.82) isLookingAway = true;
+                        if (cy > 0.82) isLookingDown = true;
+                    } else {
+                        detectedFaceCount = 0;
+                    }
+                }
+
+                // PROHIBITED OBJECT & HAND-HELD DEVICE DETECTION
+                let prohibitedDeviceDetected = false;
+                let bannedItemName = '';
+                let bannedBox = null;
+
+                // PURE DEEP LEARNING AI OBJECT DETECTION (COCO-SSD Neural Network - Zero False Positives)
+                if (cocoSsdModel) {
+                    try {
+                        const objPredictions = await cocoSsdModel.detect(video);
+                        const bannedClasses = [
+                            'cell phone', 'phone', 'remote', 'book', 'laptop', 'tablet', 
+                            'scissors', 'mouse', 'keyboard', 'bottle', 'cup', 'clock', 
+                            'backpack', 'handbag', 'electronic device', 'camera', 'knife'
+                        ];
+                        
+                        const matches = objPredictions.filter(p => {
+                            const c = p.class.toLowerCase();
+                            if (c === 'person') return false; // Ignore student's body
+                            if (c.includes('phone') || c.includes('cell') || c.includes('camera') || c.includes('book') || c.includes('remote') || c.includes('laptop') || c.includes('tablet')) {
+                                return p.score >= 0.28;
+                            }
+                            return bannedClasses.some(b => c.includes(b)) && p.score >= 0.30;
+                        });
+                        
+                        if (matches.length > 0) {
+                            prohibitedDeviceDetected = true;
+                            bannedItemName = matches[0].class.toUpperCase();
+                            bannedBox = matches[0].bbox;
+                        }
+                    } catch (objErr) {
+                        console.warn("COCO-SSD inference notice:", objErr);
+                    }
+                }
+
+                // Status Classification
+                let statusState = 'NORMAL';
+                let statusLabel = "Focused & Aligned";
+                let statusMsg = '<i class="fa-solid fa-shield-check" style="color: #10b981;"></i> Focus Centered';
+                let confidence = (detectedFaceCount === 1 ? "99%" : (detectedFaceCount > 1 ? "100%" : "0%"));
+
+                if (prohibitedDeviceDetected) {
+                    statusState = 'PHONE_DETECTED';
+                    statusLabel = `Prohibited Device (${bannedItemName}) in Hand!`;
+                    statusMsg = `<i class="fa-solid fa-mobile-screen-button" style="color: #ef4444;"></i> ${bannedItemName} DETECTED!`;
+                } else if (detectedFaceCount >= 2) {
+                    statusState = 'MULTIPLE_FACES';
+                    statusLabel = "Unauthorized Person Detected!";
+                    statusMsg = '<i class="fa-solid fa-users-slash" style="color: #ef4444;"></i> Multiple Persons Alert';
+                } else if (detectedFaceCount === 0) {
+                    statusState = 'NO_FACE';
+                    statusLabel = "Face Not Detected";
+                    statusMsg = '<i class="fa-solid fa-user-slash" style="color: #ef4444;"></i> No Face in Frame';
+                } else if (isLookingAway) {
+                    statusState = 'LOOKING_AWAY';
+                    statusLabel = "Looking Away";
+                    statusMsg = '<i class="fa-solid fa-arrow-right" style="color: #f59e0b;"></i> Looking Away';
+                } else if (isLookingDown) {
+                    statusState = 'LOOKING_DOWN';
+                    statusLabel = "Looking Down";
+                    statusMsg = '<i class="fa-solid fa-arrow-down" style="color: #f59e0b;"></i> Looking Downward';
+                } else {
+                    statusState = 'NORMAL';
+                    statusLabel = "Aligned & Focused";
+                    statusMsg = '<i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Focused & Aligned';
+                }
+
+                // Draw Visual Bounding Boxes on Overlay Canvas
+                faceBoxes.forEach((b, idx) => {
+                    if (statusState === 'MULTIPLE_FACES') {
+                        ctx.strokeStyle = '#ef4444';
+                        ctx.fillStyle = 'rgba(239, 68, 68, 0.25)';
+                    } else if (statusState === 'LOOKING_AWAY' || statusState === 'LOOKING_DOWN') {
+                        ctx.strokeStyle = '#f59e0b';
+                        ctx.fillStyle = 'rgba(245, 158, 11, 0.18)';
+                    } else {
+                        ctx.strokeStyle = '#10b981';
+                        ctx.fillStyle = 'rgba(16, 185, 129, 0.12)';
+                    }
+
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(b.x, b.y, b.width, b.height);
+                    ctx.fillRect(b.x, b.y, b.width, b.height);
+
+                    // Crosshair on primary face
+                    if (idx === 0) {
+                        const cx = b.x + b.width / 2;
+                        const cy = b.y + b.height / 2;
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.stroke();
+                    }
+                });
+
+                // Highlight Prohibited Mobile Phone / Device
+                if (prohibitedDeviceDetected && bannedBox) {
+                    ctx.strokeStyle = '#ef4444';
+                    ctx.lineWidth = 4;
+                    ctx.strokeRect(bannedBox[0], bannedBox[1], bannedBox[2], bannedBox[3]);
+                    ctx.fillStyle = 'rgba(239, 68, 68, 0.35)';
+                    ctx.fillRect(bannedBox[0], bannedBox[1], bannedBox[2], bannedBox[3]);
+                    ctx.fillStyle = '#ef4444';
+                    ctx.font = 'bold 14px sans-serif';
+                    ctx.fillText(`🚨 PROHIBITED: ${bannedItemName}`, bannedBox[0], Math.max(20, bannedBox[1] - 8));
+                }
+
+                // Update HUD Displays
+                statusText.innerHTML = statusMsg;
+                confidenceText.innerText = confidence;
+                postureLabel.innerText = statusLabel;
+
+                // CRITICAL ANTI-CHEAT TRIGGER 1: Prohibited Mobile Phone / Device in Hand
+                if (statusState === 'PHONE_DETECTED') {
+                    phoneDetectionFrameCount++;
+                    postureLabel.style.color = '#ef4444';
+                    reticle.className = 'ai-face-reticle danger';
+                    camCard.classList.add('danger-active');
+                    playProctorAlertSound(true);
+
+                    // DIRECT INSTANT CANCELLATION
+                    if (phoneDetectionFrameCount >= 1) {
+                        phoneDetectionFrameCount = 0;
+                        clearInterval(aiDetectionLoop);
+                        triggerInstantDisqualification(`🚨 CHEATING DETECTED: Unauthorized Object / Mobile Phone (${bannedItemName}) was detected in hand. Exam Cancelled immediately with 0 marks.`);
+                        return;
+                    }
+                } else {
+                    phoneDetectionFrameCount = 0;
+                }
+
+                // CRITICAL ANTI-CHEAT TRIGGER 2: Multiple Persons (>= 8 frames ~1.5s)
+                if (statusState === 'MULTIPLE_FACES') {
+                    multiPersonFrameCount++;
+                    postureLabel.style.color = '#ef4444';
+                    reticle.className = 'ai-face-reticle danger';
+                    camCard.classList.add('danger-active');
+
+                    if (multiPersonFrameCount >= 8) {
+                        multiPersonFrameCount = 0;
+                        playProctorAlertSound(true);
+                        clearInterval(aiDetectionLoop);
+                        triggerInstantDisqualification("Unauthorized Person / Multiple People Detected in Camera Frame (Zero Tolerance Cheating Violation)");
+                        return;
+                    }
+                } else {
+                    multiPersonFrameCount = 0;
+                }
+
+                // Normal / Single Person Updates
+                if (statusState === 'NORMAL') {
+                    postureLabel.style.color = 'var(--accent-emerald)';
+                    reticle.className = 'ai-face-reticle';
+                    camCard.classList.remove('warning-active', 'danger-active');
+                    consecutiveViolationCount = Math.max(0, consecutiveViolationCount - 1);
+                } else if (statusState === 'LOOKING_AWAY' || statusState === 'LOOKING_DOWN') {
+                    postureLabel.style.color = '#f59e0b';
+                    reticle.className = 'ai-face-reticle warning';
+                    camCard.classList.add('warning-active');
+                    camCard.classList.remove('danger-active');
+                    consecutiveViolationCount++;
+                    currentViolationType = statusLabel;
+                } else if (statusState === 'NO_FACE') {
+                    postureLabel.style.color = '#ef4444';
+                    reticle.className = 'ai-face-reticle danger';
+                    camCard.classList.add('danger-active');
+                    camCard.classList.remove('warning-active');
+                    consecutiveViolationCount += 2;
+                    currentViolationType = statusLabel;
+                }
+
+                // Strike Evaluation for Head Movement / Leaving Frame
+                const now = Date.now();
+                if (consecutiveViolationCount >= 14 && (now - lastStrikeTimestamp > 4000)) {
+                    consecutiveViolationCount = 0;
+                    lastStrikeTimestamp = now;
+                    registerAIProctorStrike(currentViolationType);
+                }
+
+            } catch (frameErr) {
+                console.warn("AI proctor frame processing notice:", frameErr);
+            } finally {
+                isDetectingFrame = false;
+            }
+
+        }, 180);
+    }
+
+    // AI Proctor Strike & Warning Handler
+    function registerAIProctorStrike(violationReason) {
+        if (!examActive || examSubmitted) return;
+
+        aiStrikes++;
+        violationsCount = aiStrikes;
+
+        // Update UI Badges
+        const strikesBadge = document.getElementById('ai-strikes-pill');
+        const strikesText = document.getElementById('ai-strikes-text');
+        const hudViolationsCount = document.getElementById('violations-count-display');
+        
+        if (strikesText) strikesText.innerText = `${aiStrikes} / ${MAX_AI_STRIKES} Strikes`;
+        if (hudViolationsCount) hudViolationsCount.innerText = aiStrikes;
+
+        if (aiStrikes === 1) {
+            strikesBadge.className = 'ai-strikes-pill warning';
+            playProctorAlertSound(false);
+            showViolationToast(`⚠️ AI Warning (1/3): ${violationReason} detected! Please keep your face centered towards the screen.`);
+        } else if (aiStrikes === 2) {
+            strikesBadge.className = 'ai-strikes-pill danger';
+            playProctorAlertSound(true);
+            showViolationToast(`🚨 URGENT AI Warning (2/3): ${violationReason}! 1 more strike will immediately disqualify your exam.`);
+        } else if (aiStrikes >= MAX_AI_STRIKES) {
+            strikesBadge.className = 'ai-strikes-pill danger';
+            playProctorAlertSound(true);
+            triggerInstantDisqualification(`AI Camera Proctoring: Maximum violations reached (${violationReason} / Excessive movement).`);
+        }
+    }
+
+    // 3. ANTI-CHEAT & PROCTOR MONITORING SYSTEM
+    function initAntiCheatSystem() {
+        // 3a. Visibility change (tab switch or minimizing window)
+        document.addEventListener('visibilitychange', () => {
+            if (examActive && !examSubmitted && document.hidden) {
+                triggerInstantDisqualification("Unauthorized Tab Switch or Backgrounding Detected");
+            }
+        });
+
+        // 3b. Window Blur (switching to another software app / clicking outside browser)
+        window.addEventListener('blur', () => {
+            if (examActive && !examSubmitted) {
+                triggerInstantDisqualification("Screen Focus Lost (External App / Window Switch)");
+            }
+        });
+
+        // 3c. Fullscreen exit detection
+        document.addEventListener('fullscreenchange', () => {
+            if (examActive && !examSubmitted && !document.fullscreenElement) {
+                triggerInstantDisqualification("Exited Fullscreen Secure Proctor Mode");
+            }
+        });
+
+        // 3d. Prevent right-click context menu
+        document.addEventListener('contextmenu', (e) => {
+            if (examActive) {
+                e.preventDefault();
+                showViolationToast("Right-click context menu is blocked.");
+            }
+        });
+
+        // 3e. Prevent Copy/Paste, SelectAll, DevTools keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (!examActive || examSubmitted) return;
+
+            // F12 or Inspect (Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U)
+            if (e.key === 'F12' || 
+                (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) ||
+                (e.ctrlKey && (e.key === 'u' || e.key === 'U'))
+            ) {
+                e.preventDefault();
+                triggerInstantDisqualification("Developer Tools / Source Inspect Shortcut Detected");
+                return false;
+            }
+
+            // Copy / Paste / Cut / Select-All
+            if (e.ctrlKey && (e.key === 'c' || e.key === 'C' || e.key === 'v' || e.key === 'V' || e.key === 'x' || e.key === 'X' || e.key === 'a' || e.key === 'A')) {
+                e.preventDefault();
+                showViolationToast("Copy, paste, and clipboard actions are blocked in Secure Mode.");
+                return false;
+            }
+
+            // Alt+Tab alert
+            if (e.altKey && e.key === 'Tab') {
+                e.preventDefault();
+                triggerInstantDisqualification("Alt+Tab Application Switch Attempt Detected");
+                return false;
+            }
+        });
+    }
+
+    // Immediate Disqualification Handler (Screen change -> Auto 0 Score)
+    function triggerInstantDisqualification(reason) {
+        if (!examActive || examSubmitted) return;
+        examActive = false;
+        examSubmitted = true;
+        clearInterval(timerInterval);
+
+        // Exit fullscreen if active
+        if (document.fullscreenElement) {
+            document.exitFullscreen().catch(() => {});
+        }
+
+        alert(`🚨 SECURITY VIOLATION DETECTED!\n\nReason: ${reason}\n\nAnti-Cheat Zero-Tolerance Policy: Your exam is being automatically submitted with 0 MARKS (Grade F).`);
+        submitExamData(true, reason);
+    }
+
+    function showViolationToast(msg) {
+        const toast = document.createElement('div');
+        toast.className = 'security-toast-alert';
+        toast.innerHTML = `<i class="fa-solid fa-shield-halved"></i> ${msg}`;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.classList.add('show'), 10);
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 2500);
+    }
+
+    // 3. TIMER MANAGEMENT
+    function startTimer() {
+        updateTimerDisplay();
+        timerInterval = setInterval(() => {
+            if (timeRemaining > 0) {
+                timeRemaining--;
+                updateTimerDisplay();
+
+                if (timeRemaining === 300) { // 5 mins left
+                    showViolationToast("⚠️ 5 minutes remaining!");
+                } else if (timeRemaining === 60) { // 1 min left
+                    showViolationToast("🚨 1 minute remaining! Please finalize your answers.");
+                    document.getElementById('hud-timer-box').classList.add('timer-danger');
+                }
+            } else {
+                // Time up! Auto submit
+                clearInterval(timerInterval);
+                examActive = false;
+                alert("⏳ Time has expired! Your exam is being automatically submitted for evaluation.");
+                submitExamData(false);
+            }
+        }, 1000);
+    }
+
+    function updateTimerDisplay() {
+        const mins = Math.floor(timeRemaining / 60);
+        const secs = timeRemaining % 60;
+        document.getElementById('exam-timer-display').innerText = 
+            `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    }
+
+    // 4. QUESTION RENDERING & NAVIGATION
+    function renderQuestion(index) {
+        if (index < 0 || index >= TOTAL_QUESTIONS) return;
+        currentQuestionIndex = index;
+
+        const q = EXAM_DATA.questions[index];
+        const qId = q.id;
+
+        // Meta updates
+        document.getElementById('current-q-index-pill').innerText = `Question ${index + 1} of ${TOTAL_QUESTIONS}`;
+        document.getElementById('question-text-content').innerText = q.question;
+
+        // Update Flag button status
+        const isFlagged = flaggedQuestions.has(index);
+        const flagBtn = document.getElementById('flag-btn');
+        if (isFlagged) {
+            flagBtn.classList.add('flagged');
+            document.getElementById('flag-text').innerText = 'Flagged';
+        } else {
+            flagBtn.classList.remove('flagged');
+            document.getElementById('flag-text').innerText = 'Flag Review';
+        }
+
+        // Options List Rendering
+        const container = document.getElementById('question-options-container');
+        container.innerHTML = '';
+
+        const selectedOption = userAnswers[qId];
+        const optionLetters = ['A', 'B', 'C', 'D', 'E', 'F'];
+
+        q.options.forEach((optText, optIdx) => {
+            const optCard = document.createElement('div');
+            optCard.className = `q-option-card ${selectedOption === optIdx ? 'selected' : ''}`;
+            optCard.onclick = () => selectOption(qId, optIdx);
+
+            optCard.innerHTML = `
+                <div class="option-letter-box">${optionLetters[optIdx] || optIdx + 1}</div>
+                <div class="option-text">${optText}</div>
+                <div class="option-radio-dot"><i class="fa-solid fa-check"></i></div>
+            `;
+            container.appendChild(optCard);
+        });
+
+        // Previous / Next buttons state
+        document.getElementById('prev-q-btn').disabled = (index === 0);
+        const nextBtn = document.getElementById('next-q-btn');
+        if (index === TOTAL_QUESTIONS - 1) {
+            nextBtn.innerHTML = `Finish & Review <i class="fa-solid fa-check"></i>`;
+        } else {
+            nextBtn.innerHTML = `Next Question <i class="fa-solid fa-arrow-right"></i>`;
+        }
+
+        // Update Palette highlights
+        updatePaletteGrid();
+        updateSummaryStats();
+    }
+
+    function selectOption(qId, optIdx) {
+        userAnswers[qId] = optIdx;
+        renderQuestion(currentQuestionIndex);
+    }
+
+    function clearCurrentAnswer() {
+        const q = EXAM_DATA.questions[currentQuestionIndex];
+        delete userAnswers[q.id];
+        renderQuestion(currentQuestionIndex);
+    }
+
+    function navigateQuestion(delta) {
+        const newIndex = currentQuestionIndex + delta;
+        if (newIndex >= 0 && newIndex < TOTAL_QUESTIONS) {
+            renderQuestion(newIndex);
+        } else if (newIndex >= TOTAL_QUESTIONS) {
+            confirmAndSubmitExam();
+        }
+    }
+
+    function jumpToQuestion(index) {
+        renderQuestion(index);
+    }
+
+    function toggleFlagCurrentQuestion() {
+        if (flaggedQuestions.has(currentQuestionIndex)) {
+            flaggedQuestions.delete(currentQuestionIndex);
+        } else {
+            flaggedQuestions.add(currentQuestionIndex);
+        }
+        renderQuestion(currentQuestionIndex);
+    }
+
+    function updatePaletteGrid() {
+        for (let i = 0; i < TOTAL_QUESTIONS; i++) {
+            const btn = document.getElementById(`palette-btn-${i}`);
+            if (!btn) continue;
+            
+            const q = EXAM_DATA.questions[i];
+            const hasAnswer = userAnswers[q.id] !== undefined;
+            const isFlagged = flaggedQuestions.has(i);
+            const isCurrent = (i === currentQuestionIndex);
+
+            btn.className = 'palette-btn';
+            if (isCurrent) btn.classList.add('active');
+            if (hasAnswer) btn.classList.add('answered');
+            if (isFlagged) btn.classList.add('flagged');
+        }
+    }
+
+    function updateSummaryStats() {
+        const answeredCount = Object.keys(userAnswers).length;
+        document.getElementById('summary-answered-count').innerText = answeredCount;
+        document.getElementById('summary-flagged-count').innerText = flaggedQuestions.size;
+        document.getElementById('progress-count-text').innerText = `${answeredCount}/${TOTAL_QUESTIONS} answered`;
+    }
+
+    // 5. EXAM SUBMISSION & EVALUATION
+    function confirmAndSubmitExam() {
+        const answeredCount = Object.keys(userAnswers).length;
+        const unansweredCount = TOTAL_QUESTIONS - answeredCount;
+        
+        let confirmMsg = IS_DEMO ? 
+            `Are you ready to submit your Demo Practice Exam for instant evaluation?` : 
+            `Are you ready to submit your Final Exam for evaluation?`;
+
+        if (unansweredCount > 0) {
+            confirmMsg = `You have ${unansweredCount} unanswered question(s). Are you sure you want to submit now?`;
+        }
+
+        if (confirm(confirmMsg)) {
+            submitExamData(false);
+        }
+    }
+
+    function confirmExitExam(event) {
+        if (examActive && !examSubmitted) {
+            if (!confirm("Are you sure you want to exit? Your exam progress will not be saved and you will have to restart.")) {
+                event.preventDefault();
+                return false;
+            }
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(t => t.stop());
+            }
+            if (aiDetectionLoop) {
+                clearInterval(aiDetectionLoop);
+            }
+        }
+        return true;
+    }
+
+    async function submitExamData(isDisqualified = false, disqualificationReason = null) {
+        if (examSubmitted && !isDisqualified) return;
+        examSubmitted = true;
+        examActive = false;
+        clearInterval(timerInterval);
+
+        // Stop AI Vision Proctor Loop & Camera Stream
+        if (aiDetectionLoop) {
+            clearInterval(aiDetectionLoop);
+            aiDetectionLoop = null;
+        }
+        if (mediaStream) {
+            mediaStream.getTracks().forEach(t => t.stop());
+            mediaStream = null;
+        }
+
+        // Exit fullscreen
+        if (document.fullscreenElement) {
+            document.exitFullscreen().catch(() => {});
+        }
+
+        // Show loading state
+        const submitBtns = document.querySelectorAll('.hud-submit-btn, .submit-final-cta');
+        submitBtns.forEach(btn => {
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Grading Exam...`;
+        });
+
+        const endpoint = IS_DEMO ? `/course/${COURSE_ID}/demo-exam/submit` : `/course/${COURSE_ID}/exam/submit`;
+
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    answers: isDisqualified ? {} : userAnswers,
+                    violations_count: isDisqualified ? 1 : violationsCount,
+                    disqualified: isDisqualified,
+                    disqualification_reason: disqualificationReason
+                })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                displayExamResults(result);
+            } else {
+                alert("Error evaluating exam: " + (result.error || "Please try again."));
+            }
+        } catch (err) {
+            console.error("Submission error:", err);
+            alert("Network error occurred during submission. Please check your connection.");
+        }
+    }
+
+    // 6. RENDER RESULTS & CERTIFICATE MODAL
+    function displayExamResults(result) {
+        document.getElementById('exam-main-stage').style.display = 'none';
+        const modal = document.getElementById('exam-result-modal');
+        modal.style.display = 'flex';
+
+        const percentage = result.final_percentage;
+        document.getElementById('result-percentage-text').innerText = `${percentage}%`;
+        document.getElementById('result-correct-val').innerText = `${result.score} / ${result.total_questions}`;
+        document.getElementById('result-violations-val').innerText = result.violations_count;
+        document.getElementById('result-grade-pill').innerText = `Grade: ${result.grade} (${result.grade_title})`;
+
+        if (result.disqualified) {
+            document.getElementById('result-icon-box').className = 'result-badge-icon failed';
+            document.getElementById('result-icon-box').innerHTML = '<i class="fa-solid fa-ban" style="color: #ef4444;"></i>';
+            document.getElementById('result-title-text').innerText = "🚨 DISQUALIFIED (0 MARKS)";
+            document.getElementById('result-title-text').style.color = "#ef4444";
+            document.getElementById('result-subtitle-text').innerText = `Cheating prevention triggered: ${result.disqualification_reason || 'Unauthorized screen/tab switch detected during proctored exam.'}`;
+            document.getElementById('result-status-val').innerText = "DISQUALIFIED (0%)";
+            document.getElementById('result-status-val').style.color = "var(--accent-rose)";
+
+            document.getElementById('result-passed-actions').style.display = 'none';
+            document.getElementById('result-failed-actions').style.display = 'block';
+        } else if (result.passed) {
+            document.getElementById('result-icon-box').className = 'result-badge-icon passed';
+            document.getElementById('result-icon-box').innerHTML = result.is_demo ? '<i class="fa-solid fa-circle-check"></i>' : '<i class="fa-solid fa-graduation-cap"></i>';
+            document.getElementById('result-title-text').innerText = result.is_demo ? "🎯 Demo Practice Exam Complete!" : "🎉 Congratulations! You Passed!";
+            document.getElementById('result-title-text').style.color = "#ffffff";
+            document.getElementById('result-subtitle-text').innerText = result.is_demo ? 
+                `You scored ${percentage}% on this practice simulation (+25 XP earned)! Complete all course modules to unlock the official Final Certification Exam.` :
+                `You have officially earned your verified Certificate of Completion for ${result.course_title}!`;
+            document.getElementById('result-status-val').innerText = result.is_demo ? "PRACTICE PASSED" : "PASSED";
+            document.getElementById('result-status-val').style.color = "var(--accent-emerald)";
+
+            document.getElementById('result-passed-actions').style.display = 'flex';
+            document.getElementById('result-failed-actions').style.display = 'none';
+
+            if (result.certificate_code) {
+                const certBtn = document.getElementById('view-certificate-btn');
+                if (certBtn) certBtn.href = `/certificate/${result.certificate_code}`;
+            }
+        } else {
+            document.getElementById('result-icon-box').className = 'result-badge-icon failed';
+            document.getElementById('result-icon-box').innerHTML = '<i class="fa-solid fa-circle-exclamation"></i>';
+            document.getElementById('result-title-text').innerText = result.is_demo ? "Demo Exam Finished (Passing: 70%)" : "Exam Incomplete (Passing: 70%)";
+            document.getElementById('result-title-text').style.color = "#ffffff";
+            document.getElementById('result-subtitle-text').innerText = result.is_demo ? 
+                `You scored ${percentage}%. You can review the solutions below and retake the demo exam anytime!` :
+                `You scored ${percentage}%. Review the course material and retake the exam when ready.`;
+            document.getElementById('result-status-val').innerText = result.is_demo ? "PRACTICE COMPLETED" : "NEEDS RETAKE";
+            document.getElementById('result-status-val').style.color = "var(--accent-rose)";
+
+            document.getElementById('result-passed-actions').style.display = 'none';
+            document.getElementById('result-failed-actions').style.display = 'block';
+        }
+
+        // Render Question review items
+        if (result.feedback && result.feedback.length > 0) {
+            const reviewContainer = document.getElementById('review-details-container');
+            reviewContainer.innerHTML = '';
+            
+            result.feedback.forEach((item, idx) => {
+                const optLetters = ['A', 'B', 'C', 'D', 'E'];
+                const card = document.createElement('div');
+                card.className = `review-item-card ${item.is_correct ? 'correct' : 'incorrect'}`;
+                
+                card.innerHTML = `
+                    <div class="review-item-header">
+                        <span class="q-num">Q${idx + 1}: ${item.question}</span>
+                        <span class="status-badge ${item.is_correct ? 'correct' : 'incorrect'}">
+                            ${item.is_correct ? '<i class="fa-solid fa-check"></i> Correct (+10)' : '<i class="fa-solid fa-xmark"></i> Incorrect (0)'}
+                        </span>
+                    </div>
+                    <div class="review-answers-box">
+                        <div>Your Choice: <strong>${item.user_answer !== null ? optLetters[item.user_answer] || 'Option ' + (item.user_answer + 1) : 'Unanswered'}</strong></div>
+                        <div style="color: var(--accent-emerald);">Correct Answer: <strong>${optLetters[item.correct_answer] || 'Option ' + (item.correct_answer + 1)}</strong></div>
+                    </div>
+                    <div class="review-explanation">
+                        <i class="fa-solid fa-lightbulb" style="color: var(--text-warning);"></i> <em>Explanation:</em> ${item.explanation}
+                    </div>
+                `;
+                reviewContainer.appendChild(card);
+            });
+        }
+    }
+
+
+    function toggleReviewDetails() {
+        const container = document.getElementById('review-details-container');
+        const chevron = document.getElementById('review-chevron');
+        if (container.style.display === 'none') {
+            container.style.display = 'flex';
+            chevron.className = 'fa-solid fa-chevron-up';
+        } else {
+            container.style.display = 'none';
+            chevron.className = 'fa-solid fa-chevron-down';
+        }
+    }
+</script>
+{% endblock %}
